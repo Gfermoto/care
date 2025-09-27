@@ -1,0 +1,44 @@
+# C.A.R.E. Radar Configuration
+# Configuration file for the C.A.R.E. radar system
+
+# Radar settings
+radar:
+  port: "/dev/ttyUSB0"
+  baud_rate: 256000
+  frame_id: "radar_link"
+  publish_rate: 20.0
+  debug: false
+
+# Safety settings
+safety:
+  min_distance: 300.0  # mm
+  max_angle: 60.0      # degrees
+  emergency_stop_timeout: 1.0  # seconds
+  can_enabled: true
+
+# CAN settings
+can:
+  interface: "can0"
+  bitrate: 500000
+  emergency_stop_id: 0x100
+  target_data_id: 0x200
+  status_id: 0x300
+
+# ROS2 settings
+ros2:
+  use_sim_time: false
+  node_name: "care_radar"
+  namespace: "care"
+
+# Diagnostic settings
+diagnostics:
+  enabled: true
+  update_rate: 1.0
+  timeout: 5.0
+
+# Logging settings
+logging:
+  level: "info"
+  file: "/tmp/care_radar.log"
+  max_size: "10MB"
+  max_files: 5
