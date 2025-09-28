@@ -1,0 +1,15 @@
+# C.A.R.E. Get System Status Service
+# Получение полного статуса системы
+
+# Request
+bool include_device_details     # Include detailed device information
+bool include_performance_metrics # Include performance statistics
+uint8 device_id                 # Specific device ID (0 = all devices)
+
+---
+
+# Response
+bool success                    # Request success flag
+string message                  # Status or error message
+SystemStatus system_status      # Complete system status
+DeviceInfo[] device_details     # Detailed device information (if requested)

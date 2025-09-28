@@ -91,3 +91,4 @@ echo ""
 
 # Ждем завершения процессов
 wait $ROS_PID $RVIZ_PID
+

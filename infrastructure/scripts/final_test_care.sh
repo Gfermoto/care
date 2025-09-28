@@ -132,3 +132,4 @@ while true; do
 done
 
 wait $NODE_PID $RVIZ_PID
+

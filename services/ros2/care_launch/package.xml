@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>care_launch</name>
+  <version>2.0.0</version>
+  <description>C.A.R.E. Launch Configurations - System-wide launch files and configurations</description>
+  
+  <maintainer email="care@project.com">C.A.R.E. Team</maintainer>
+  <license>MIT</license>
+  
+  <author email="care@project.com">C.A.R.E. DevOps Team</author>
+  
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  
+  <exec_depend>care_common</exec_depend>
+  <exec_depend>care_demo_node</exec_depend>
+  <exec_depend>care_can_interface_node</exec_depend>
+  <exec_depend>care_safety_controller_node</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

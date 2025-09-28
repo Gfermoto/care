@@ -1,0 +1,25 @@
+# C.A.R.E. Controller Configuration Service
+# Настройка параметров контроллера
+
+# Request
+uint8 device_id                 # Target device ID (0 = broadcast to all)
+string config_section           # Configuration section name
+string config_data              # Configuration data (JSON format)
+bool apply_immediately          # Apply configuration immediately
+bool save_to_flash             # Save configuration to device flash
+
+# Configuration sections:
+# "can" - CAN bus settings (bitrate, IDs, etc.)
+# "radar" - LD2450 radar settings  
+# "safety" - Local safety parameters
+# "system" - System-level settings
+# "network" - Network/WiFi settings (ESP32 only)
+
+---
+
+# Response
+bool success                    # Configuration success flag
+string message                  # Status or error message
+string applied_config           # Actually applied configuration (may differ from request)
+builtin_interfaces/Time applied_time  # When configuration was applied
+bool device_restart_required   # Does device need restart for changes to take effect

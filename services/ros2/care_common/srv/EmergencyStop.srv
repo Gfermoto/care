@@ -1,0 +1,23 @@
+# C.A.R.E. Emergency Stop Service
+# Сервис для управления экстренной остановкой
+
+# Request
+uint8 STOP_ALL = 0              # Stop all devices
+uint8 STOP_SPECIFIC = 1         # Stop specific device
+uint8 RESUME_ALL = 2            # Resume all devices  
+uint8 RESUME_SPECIFIC = 3       # Resume specific device
+uint8 TEST_EMERGENCY = 4        # Test emergency system
+
+uint8 command                   # Emergency command
+uint8 target_device_id          # Target device (ignored for ALL commands)
+string reason                   # Reason for emergency action
+bool force                      # Force action even if unsafe
+
+---
+
+# Response
+bool success                    # Command success flag
+string message                  # Status or error message
+uint8 devices_affected          # Number of devices affected
+builtin_interfaces/Time executed_time  # When command was executed
+bool system_safe               # Is system in safe state after command

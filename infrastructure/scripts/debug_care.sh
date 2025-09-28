@@ -74,3 +74,4 @@ trap cleanup SIGINT SIGTERM
 echo ""
 echo "🎮 Для остановки нажмите Ctrl+C"
 wait $NODE_PID $RVIZ_PID
+

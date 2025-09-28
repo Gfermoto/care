@@ -118,3 +118,4 @@ Create custom RViz2 plugins for specialized C.A.R.E. visualizations.
 - Use appropriate update rates
 - Close unused displays
 - Adjust quality settings for slower systems
+

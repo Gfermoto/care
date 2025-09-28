@@ -1,0 +1,15 @@
+# C.A.R.E. Set Safety Zone Service
+# Настройка зон безопасности
+
+# Request
+SafetyZone safety_zone          # New safety zone configuration
+bool apply_immediately          # Apply configuration immediately
+bool save_to_persistent         # Save to persistent storage
+
+---
+
+# Response  
+bool success                    # Operation success flag
+string message                  # Status or error message
+uint8 zone_id                   # Assigned zone ID
+builtin_interfaces/Time applied_time  # When configuration was applied
