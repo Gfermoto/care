@@ -321,3 +321,5 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+platforms/esp32/hlk_ld2450_arduino/
+platforms/esp32/ld2450_driver_esp32/
