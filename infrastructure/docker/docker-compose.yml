@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # Node.js сервисы
+  care-nodejs:
+    build: 
+      context: ./nodejs
+      dockerfile: Dockerfile
+    container_name: care-nodejs
+    ports:
+      - "3000:3000"  # Web Dashboard
+      - "3001:3001"  # API Server
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - API_PORT=3001
+      - CAN_INTERFACE=can0
+      - CAN_BITRATE=500000
+      - ROS_DOMAIN_ID=0
+    volumes:
+      - ./nodejs/data:/app/data
+      - ./nodejs/logs:/app/logs
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - care-ros2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ROS 2 сервисы
+  care-ros2:
+    build:
+      context: ./ros2
+      dockerfile: Dockerfile
+    container_name: care-ros2
+    environment:
+      - ROS_DOMAIN_ID=0
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ros2:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    network_mode: host
+    restart: unless-stopped
+    command: >
+      bash -c "
+        source /opt/ros/humble/setup.bash &&
+        cd /workspace &&
+        colcon build &&
+        source install/setup.bash &&
+        ros2 launch care_ld2450_driver care.launch.py
+      "
+    healthcheck:
+      test: ["CMD", "ros2", "node", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis для кэширования
+  redis:
+    image: redis:7-alpine
+    container_name: care-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx для балансировки
+  nginx:
+    image: nginx:alpine
+    container_name: care-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - care-nodejs
+    restart: unless-stopped
+
+volumes:
+  redis_data:

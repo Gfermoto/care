@@ -1,0 +1,22 @@
+# C.A.R.E. - Python Dependencies
+# Установка: pip install -r requirements.txt
+
+# Основные зависимости для ESP-IDF
+setuptools>=68.1.2
+pkg_resources
+
+# PlatformIO (если не установлен глобально)
+platformio>=6.0.0
+
+# ROS 2 зависимости (для хост-системы)
+# Устанавливаются отдельно через apt/rosdep
+# rclcpp
+# std_msgs
+# sensor_msgs
+# geometry_msgs
+# ament_cmake
+# rosidl_default_generators
+
+# Дополнительные инструменты разработки
+colcon-common-extensions
+rosdep

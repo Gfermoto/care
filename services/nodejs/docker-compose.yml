@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  care-nodejs:
+    build: .
+    container_name: care-nodejs
+    ports:
+      - "3000:3000"  # Web Dashboard
+      - "3001:3001"  # API Server
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - API_PORT=3001
+      - CAN_INTERFACE=can0
+      - CAN_BITRATE=500000
+      - ROS_DOMAIN_ID=0
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: care-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: care-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - care-nodejs
+    restart: unless-stopped
+
+volumes:
+  redis_data:
