@@ -72,7 +72,7 @@ def generate_launch_description():
     # Package directories
     care_launch_share = FindPackageShare(package='care_launch').find('care_launch')
     care_demo_share = FindPackageShare(package='care_demo_node').find('care_demo_node')
-    rviz_config = PathJoinSubstitution([care_demo_share, 'config', 'care_radar.rviz'])
+    rviz_config = PathJoinSubstitution([care_demo_share, 'config', 'care_demo.rviz'])
     
     # CAN Interface Node (для режимов can_only и mixed)
     can_interface_node = Node(

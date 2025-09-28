@@ -4,9 +4,9 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='care_radar_publisher',
-            executable='care_radar_node',
-            name='care_radar_publisher',
+            package='care_demo_node',
+            executable='care_demo_node',
+            name='care_demo_node',
             output='screen',
             parameters=[{
                 'use_sim_time': False,

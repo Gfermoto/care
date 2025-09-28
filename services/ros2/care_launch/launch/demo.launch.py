@@ -44,7 +44,7 @@ def generate_launch_description():
     care_demo_share = FindPackageShare(package='care_demo_node').find('care_demo_node')
     
     # RViz config path
-    rviz_config = PathJoinSubstitution([care_demo_share, 'config', 'care_radar.rviz'])
+    rviz_config = PathJoinSubstitution([care_demo_share, 'config', 'care_demo.rviz'])
     
     # Demo Node - генерирует Mock данные
     demo_node = Node(

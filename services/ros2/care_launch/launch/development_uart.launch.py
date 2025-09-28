@@ -58,7 +58,7 @@ def generate_launch_description():
     
     # Package directories
     care_demo_share = FindPackageShare(package='care_demo_node').find('care_demo_node')
-    rviz_config = PathJoinSubstitution([care_demo_share, 'config', 'care_radar.rviz'])
+    rviz_config = PathJoinSubstitution([care_demo_share, 'config', 'care_demo.rviz'])
     
     # Demo Node в UART режиме
     uart_interface_node = Node(

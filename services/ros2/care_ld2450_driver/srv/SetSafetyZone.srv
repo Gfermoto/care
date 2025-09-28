@@ -1,8 +1,0 @@
-# C.A.R.E. Set Safety Zone Service
-# Request
-float32 min_distance         # Minimum safe distance in mm
-float32 max_angle            # Maximum safe angle in degrees
----
-# Response
-bool success                 # Service success
-string message               # Status message
