@@ -1,112 +1,73 @@
 # C.A.R.E. ROS2 Workspace
 
-## 📊 **Архитектура ROS2 системы**
+## 📊 Архитектура
 
-Этот workspace содержит **5 оптимизированных ROS2 пакетов** для системы C.A.R.E.:
-
-### 🏗️ **Структура пакетов:**
+Минимальный и изящный набор пакетов:
 
 ```
 services/ros2/
-├── care_common/                    # 📦 Общие сообщения и сервисы
-│   ├── msg/                       # ROS2 сообщения
-│   │   ├── DeviceInfo.msg         # Информация об устройстве
-│   │   ├── RadarTarget.msg        # Одна цель радара
-│   │   ├── RadarTargets.msg       # Массив целей
-│   │   ├── SafetyCommand.msg      # Команды безопасности
-│   │   ├── SafetyZone.msg         # Зоны безопасности
-│   │   └── SystemStatus.msg       # Статус системы
-│   └── srv/                       # ROS2 сервисы
-│       ├── ConfigController.srv   # Настройка контроллера
-│       ├── EmergencyStop.srv      # Экстренная остановка
-│       ├── GetSystemStatus.srv    # Получение статуса
-│       └── SetSafetyZone.srv      # Настройка зон безопасности
-│
-├── care_demo_node/                # 🎭 Демо и визуализация
-│   ├── src/care_demo_node.cpp     # Mock данные + RViz
-│   ├── config/care_demo.rviz      # RViz конфигурация
-│   └── launch/care_demo.launch.py # Launch файл
-│
-├── care_can_interface_node/       # 🚌 CAN интерфейс
-│   └── src/care_can_interface_node.cpp # Чистый CAN ↔ ROS2 мост
-│
-├── care_safety_controller_node/   # 🛡️ Система безопасности
-│   └── src/care_safety_controller_node.cpp # Централизованная логика безопасности
-│
-└── care_launch/                   # 🚀 Launch конфигурации
-    └── launch/
-        ├── demo.launch.py         # Демо режим
-        ├── production_can.launch.py # Продакшн с CAN
-        ├── development_uart.launch.py # Разработка с UART
-        └── full_system.launch.py  # Полная система
+├── care_common/                  # Общие сообщения/сервисы
+├── care_can_bridge_node/        # 🚌 Прозрачный мост CAN ↔ ROS2
+├── care_demo_node/              # 🎭 Демо/визуализация + настройка (0x400/0x401)
+└── care_safety_controller_node/ # 🛡️ Расширенная логика безопасности
 ```
 
-## 🎯 **Принципы архитектуры:**
+- Все ноды поддерживают режимы: `mode:=mock` или `mode:=real`
+- Демо-нода умеет отправлять конфиг в контроллер/радар через CAN (`0x400/0x401`), ждать ACK
+- Мост публикует ACK в `/care/config_ack_raw`
 
-### ✅ **Каждая нода = одна ответственность:**
-- **`care_common`** - Консистентные типы данных
-- **`care_demo_node`** - Генерация данных и визуализация
-- **`care_can_interface_node`** - Только CAN протокол
-- **`care_safety_controller_node`** - Только логика безопасности
-- **`care_launch`** - Только конфигурации запуска
-
-### 🚀 **Режимы запуска:**
+## 🚀 Запуск
 
 ```bash
-# Демо с Mock данными
-ros2 launch care_launch demo.launch.py
-
-# Продакшн с реальными CAN контроллерами
-ros2 launch care_launch production_can.launch.py can_interface:=can0
-
-# Разработка с UART подключением
-ros2 launch care_launch development_uart.launch.py uart_port:=/dev/ttyUSB0
-
-# Полная система (CAN + Demo + Мониторинг)
-ros2 launch care_launch full_system.launch.py mode:=mixed
-```
-
-## 🔧 **Сборка:**
-
-```bash
-# Переход в workspace
+# Сборка
 cd /home/gfer/CARE/services/ros2
+colcon build && source install/setup.bash
 
-# Установка зависимостей
-rosdep install --from-paths . --ignore-src -r -y
+# Мост (real CAN)
+ros2 run care_can_bridge_node can_bridge.py --ros-args -p mode:=real -p can_interface:=can0
 
-# Сборка всех пакетов
-colcon build
+# Демо (визуализация + конфиг через CAN)
+ros2 run care_demo_node demo_node.py --ros-args -p mode:=mock -p can_interface:=can0
 
-# Активация окружения
-source install/setup.bash
+# Безопасность
+ros2 run care_safety_controller_node safety_node.py --ros-args -p mode:=mock
 ```
 
-## 📊 **Топики и сервисы:**
+## 🖼️ RViz
 
-### 📡 **Основные топики:**
-- `/care/demo/targets` - Демо цели
-- `/care/device_*/targets` - Цели с устройств
-- `/care/safety_commands` - Команды безопасности
-- `/care/system_status` - Статус системы
+- Маркеры целей: `/care/rviz/targets`
+- Статус: `/care/rviz/status`
+- Fixed Frame: `care_radar`
 
-### 🔧 **Основные сервисы:**
-- `/care/set_safety_zone` - Настройка зон безопасности
-- `/care/emergency_stop` - Управление экстренной остановкой
-- `/care/get_system_status` - Получение статуса системы
+## ⚙️ Конфигурация через CAN (из демо-ноды)
 
-## 🛡️ **Система безопасности:**
+```bash
+# SET (контроллер): bitrate=500k, mode=normal, SAVE
+ros2 service call /care/configure_controller care_common/srv/ConfigController \
+  "{device_id: 1, config_section: 'can', config_data: '{\"bitrate\": 500000, \"mode\": \"normal\"}', apply_immediately: true, save_to_flash: true}"
 
-### 🎯 **Двухуровневая безопасность:**
-1. **Зона замедления** (`slowdown_distance`) - Команда `COMMAND_SLOWDOWN`
-2. **Критическая зона** (`critical_distance`) - Команда `COMMAND_STOP`
+# SET (радар): max_targets=3, range=8м, update=20 Гц
+ros2 service call /care/configure_controller care_common/srv/ConfigController \
+  "{device_id: 1, config_section: 'radar', config_data: '{\"max_targets\": 3, \"range_m\": 8, \"update_hz\": 20}', apply_immediately: true, save_to_flash: true}"
 
-### 📊 **CAN протокол:**
-- **0x100** - Команды замедления
-- **0x101** - Команды экстренной остановки
-- **0x200+** - Данные целей
-- **0x300+** - Статус устройств
+# GET (контроллер)
+ros2 service call /care/configure_controller care_common/srv/ConfigController \
+  "{device_id: 1, config_section: 'can', config_data: '{\"__cmd__\": \"get\"}', apply_immediately: true, save_to_flash: false}"
 
----
+# RESET (радар)
+ros2 service call /care/configure_controller care_common/srv/ConfigController \
+  "{device_id: 1, config_section: 'radar', config_data: '{\"__cmd__\": \"reset\"}', apply_immediately: true, save_to_flash: false}"
+```
 
-**C.A.R.E. v2.0** - Collaborative Awareness Radar for Empathic interaction
+ACK/ERROR публикуются мостом в `/care/config_ack_raw`.
+
+## 📡 CAN протокол (актуальный)
+- `0x100` — Emergency Stop
+- `0x200-0x202` — Target Data
+- `0x300` — System Status
+- `0x400` — Config Controller (SET/GET/SAVE/RESET)
+- `0x401` — Config Radar (SET/GET/SAVE/RESET)
+- `0x480` — ACK контроллера
+- `0x481` — ACK радара
+
+Подробнее: `docs/CAN_MESSAGES.md`.

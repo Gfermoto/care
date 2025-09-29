@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>care_can_bridge_node</name>
+  <version>0.1.0</version>
+  <description>C.A.R.E. CAN Bridge Node (transparent radar + emergency)</description>
+  <maintainer email="team@care">CARE Team</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+</package>

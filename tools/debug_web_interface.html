@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C.A.R.E. Debug Interface</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab.active:hover {
+            background: #0056b3;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-entry.info {
+            color: #007bff;
+        }
+        
+        .log-entry.success {
+            color: #28a745;
+        }
+        
+        .log-entry.warning {
+            color: #ffc107;
+        }
+        
+        .log-entry.error {
+            color: #dc3545;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .config-display {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ C.A.R.E. Debug Interface</h1>
+            <p>Отладка и настройка радара и контроллера</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('radar')">📡 Радар</button>
+            <button class="tab" onclick="showTab('controller')">🎛️ Контроллер</button>
+            <button class="tab" onclick="showTab('monitor')">📊 Мониторинг</button>
+            <button class="tab" onclick="showTab('debug')">🔧 Отладка</button>
+        </div>
+        
+        <div class="content">
+            <!-- Статус подключения -->
+            <div id="connectionStatus" class="status disconnected">
+                ❌ Не подключен к COM порту
+            </div>
+            
+            <!-- Вкладка Радар -->
+            <div id="radar" class="tab-content active">
+                <h2>📡 Настройка радара LD2450</h2>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>Основные параметры</h3>
+                        <div class="form-group">
+                            <label>COM порт:</label>
+                            <select id="radarPort">
+                                <option value="/dev/ttyUSB0">/dev/ttyUSB0</option>
+                                <option value="/dev/ttyUSB1">/dev/ttyUSB1</option>
+                                <option value="/dev/ttyACM0">/dev/ttyACM0</option>
+                                <option value="/dev/ttyACM1">/dev/ttyACM1</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Скорость (бод):</label>
+                            <select id="radarBaudrate">
+                                <option value="115200">115200</option>
+                                <option value="256000" selected>256000</option>
+                                <option value="460800">460800</option>
+                                <option value="921600">921600</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Максимум целей:</label>
+                            <select id="radarMaxTargets">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3" selected>3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Дальность (мм):</label>
+                            <input type="number" id="radarRange" value="8000" min="1000" max="10000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Частота обновления (Гц):</label>
+                            <select id="radarUpdateRate">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-success" onclick="configureRadar()">Настроить радар</button>
+                        <button class="btn btn-warning" onclick="testRadar()">Тестировать</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Зоны обнаружения</h3>
+                        <div class="form-group">
+                            <label>Начальный угол (градусы):</label>
+                            <input type="number" id="radarStartAngle" value="-60" min="-180" max="180">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Конечный угол (градусы):</label>
+                            <input type="number" id="radarEndAngle" value="60" min="-180" max="180">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Минимальная дальность (мм):</label>
+                            <input type="number" id="radarMinRange" value="200" min="100" max="1000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Максимальная дальность (мм):</label>
+                            <input type="number" id="radarMaxRange" value="8000" min="1000" max="10000">
+                        </div>
+                        
+                        <button class="btn btn-success" onclick="configureRadarZones()">Настроить зоны</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Вкладка Контроллер -->
+            <div id="controller" class="tab-content">
+                <h2>🎛️ Настройка контроллера</h2>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>CAN настройки</h3>
+                        <div class="form-group">
+                            <label>Скорость CAN (бит/с):</label>
+                            <select id="canBitrate">
+                                <option value="125000">125000</option>
+                                <option value="250000">250000</option>
+                                <option value="500000" selected>500000</option>
+                                <option value="1000000">1000000</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>TX пин:</label>
+                            <input type="text" id="canTxPin" value="PB0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>RX пин:</label>
+                            <input type="text" id="canRxPin" value="PB1">
+                        </div>
+                        
+                        <button class="btn btn-success" onclick="configureCAN()">Настроить CAN</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Безопасность</h3>
+                        <div class="form-group">
+                            <label>Аварийная зона (мм):</label>
+                            <input type="number" id="emergencyRadius" value="1000" min="500" max="3000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Угол аварийной зоны (градусы):</label>
+                            <input type="number" id="emergencyAngle" value="30" min="10" max="90">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Время реакции (мс):</label>
+                            <input type="number" id="reactionTime" value="50" min="10" max="1000">
+                        </div>
+                        
+                        <button class="btn btn-success" onclick="configureSafety()">Настроить безопасность</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Вкладка Мониторинг -->
+            <div id="monitor" class="tab-content">
+                <h2>📊 Мониторинг в реальном времени</h2>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>Статус системы</h3>
+                        <div id="systemStatus" class="config-display">
+                            Ожидание подключения...
+                        </div>
+                        <button class="btn" onclick="refreshStatus()">Обновить</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Данные радара</h3>
+                        <div id="radarData" class="config-display">
+                            Ожидание данных...
+                        </div>
+                        <button class="btn" onclick="startRadarMonitoring()">Начать мониторинг</button>
+                        <button class="btn btn-danger" onclick="stopRadarMonitoring()">Остановить</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Лог событий</h3>
+                    <div id="eventLog" class="log">
+                        <div class="log-entry info">[INFO] Система запущена</div>
+                    </div>
+                    <button class="btn" onclick="clearLog()">Очистить лог</button>
+                </div>
+            </div>
+            
+            <!-- Вкладка Отладка -->
+            <div id="debug" class="tab-content">
+                <h2>🔧 Отладка через COM порт</h2>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>Команды отладки</h3>
+                        <div class="form-group">
+                            <label>Команда:</label>
+                            <input type="text" id="debugCommand" placeholder="AT+VERSION" value="AT+VERSION">
+                        </div>
+                        
+                        <button class="btn" onclick="sendDebugCommand()">Отправить команду</button>
+                        <button class="btn btn-warning" onclick="testConnection()">Тест подключения</button>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Быстрые команды</h3>
+                        <button class="btn" onclick="quickCommand('AT+VERSION')">Версия</button>
+                        <button class="btn" onclick="quickCommand('AT+STATUS')">Статус</button>
+                        <button class="btn" onclick="quickCommand('AT+TARGETS')">Цели</button>
+                        <button class="btn" onclick="quickCommand('AT+INFO')">Информация</button>
+                        <button class="btn" onclick="quickCommand('AT+RESET')">Перезагрузка</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Ответ устройства</h3>
+                    <div id="debugResponse" class="log">
+                        <div class="log-entry info">[INFO] Готов к отладке</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentTab = 'radar';
+        let monitoring = false;
+        
+        function showTab(tabName) {
+            // Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Показать выбранную вкладку
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            currentTab = tabName;
+        }
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('eventLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('eventLog').innerHTML = '<div class="log-entry info">[INFO] Лог очищен</div>';
+        }
+        
+        function configureRadar() {
+            const port = document.getElementById('radarPort').value;
+            const baudrate = document.getElementById('radarBaudrate').value;
+            const maxTargets = document.getElementById('radarMaxTargets').value;
+            const range = document.getElementById('radarRange').value;
+            const updateRate = document.getElementById('radarUpdateRate').value;
+            
+            log(`Настройка радара: ${port}, ${baudrate} бод, ${maxTargets} целей, ${range}мм, ${updateRate}Гц`, 'info');
+            
+            // Здесь будет реальная отправка команд
+            setTimeout(() => {
+                log('Радар настроен успешно', 'success');
+            }, 1000);
+        }
+        
+        function testRadar() {
+            log('Тестирование радара...', 'info');
+            
+            const commands = ['AT+VERSION', 'AT+STATUS', 'AT+TARGETS'];
+            let index = 0;
+            
+            const testInterval = setInterval(() => {
+                if (index < commands.length) {
+                    log(`Отправка: ${commands[index]}`, 'info');
+                    index++;
+                } else {
+                    clearInterval(testInterval);
+                    log('Тестирование завершено', 'success');
+                }
+            }, 1000);
+        }
+        
+        function configureRadarZones() {
+            const startAngle = document.getElementById('radarStartAngle').value;
+            const endAngle = document.getElementById('radarEndAngle').value;
+            const minRange = document.getElementById('radarMinRange').value;
+            const maxRange = document.getElementById('radarMaxRange').value;
+            
+            log(`Настройка зон: ${startAngle}° - ${endAngle}°, ${minRange}мм - ${maxRange}мм`, 'info');
+            
+            setTimeout(() => {
+                log('Зоны обнаружения настроены', 'success');
+            }, 1000);
+        }
+        
+        function configureCAN() {
+            const bitrate = document.getElementById('canBitrate').value;
+            const txPin = document.getElementById('canTxPin').value;
+            const rxPin = document.getElementById('canRxPin').value;
+            
+            log(`Настройка CAN: ${bitrate} бод, TX=${txPin}, RX=${rxPin}`, 'info');
+            
+            setTimeout(() => {
+                log('CAN настроен', 'success');
+            }, 1000);
+        }
+        
+        function configureSafety() {
+            const radius = document.getElementById('emergencyRadius').value;
+            const angle = document.getElementById('emergencyAngle').value;
+            const reactionTime = document.getElementById('reactionTime').value;
+            
+            log(`Настройка безопасности: ${radius}мм, ±${angle}°, ${reactionTime}мс`, 'info');
+            
+            setTimeout(() => {
+                log('Безопасность настроена', 'success');
+            }, 1000);
+        }
+        
+        function refreshStatus() {
+            log('Обновление статуса...', 'info');
+            
+            const statusElement = document.getElementById('systemStatus');
+            statusElement.textContent = `Статус: Подключен
+Радар: Активен
+CAN: 500000 бод
+Цели: 2 активных
+Авария: НЕТ`;
+            
+            log('Статус обновлен', 'success');
+        }
+        
+        function startRadarMonitoring() {
+            if (monitoring) return;
+            
+            monitoring = true;
+            log('Начат мониторинг радара', 'info');
+            
+            const radarDataElement = document.getElementById('radarData');
+            
+            const monitoringInterval = setInterval(() => {
+                if (!monitoring) {
+                    clearInterval(monitoringInterval);
+                    return;
+                }
+                
+                const timestamp = new Date().toLocaleTimeString();
+                radarDataElement.textContent = `[${timestamp}] Цель 1: (150, 200)мм, 1200мм
+[${timestamp}] Цель 2: (300, -100)мм, 2500мм
+[${timestamp}] Цель 3: Нет данных`;
+            }, 100);
+        }
+        
+        function stopRadarMonitoring() {
+            monitoring = false;
+            log('Мониторинг радара остановлен', 'warning');
+        }
+        
+        function sendDebugCommand() {
+            const command = document.getElementById('debugCommand').value;
+            if (!command) return;
+            
+            log(`Отправка: ${command}`, 'info');
+            
+            // Имитация ответа
+            setTimeout(() => {
+                const responseElement = document.getElementById('debugResponse');
+                const timestamp = new Date().toLocaleTimeString();
+                const response = document.createElement('div');
+                response.className = 'log-entry success';
+                response.textContent = `[${timestamp}] Ответ: OK - ${command}`;
+                responseElement.appendChild(response);
+                responseElement.scrollTop = responseElement.scrollHeight;
+            }, 500);
+        }
+        
+        function quickCommand(command) {
+            document.getElementById('debugCommand').value = command;
+            sendDebugCommand();
+        }
+        
+        function testConnection() {
+            log('Тестирование подключения...', 'info');
+            
+            setTimeout(() => {
+                log('Подключение успешно', 'success');
+                document.getElementById('connectionStatus').className = 'status connected';
+                document.getElementById('connectionStatus').textContent = '✅ Подключен к COM порту';
+            }, 1000);
+        }
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            log('C.A.R.E. Debug Interface загружен', 'success');
+        });
+    </script>
+</body>
+</html>

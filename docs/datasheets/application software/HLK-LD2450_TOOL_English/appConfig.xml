@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<AppConfig
+	LANGUAGE="ENG"
+	DataFilePath=""
+	ObjectCountType="0"
+	ObjectWnd_TopViewMode="1"
+	ObjectWnd_DrawLocus="0"
+	ObjectWnd_AngleStart="-160"
+	ObjectWnd_AngleStop="-20"
+	ObjectWnd_AngleStep="10"
+	ObjectWnd_SectorCount="0"
+	ObjectWnd_GateMin="0.0"
+	ObjectWnd_GateMax="-1.0"
+	ObjectWnd_RadiusScale="1.0"
+	ObjectWnd_LocusRadiusScale="0.5"
+	ObjectWnd_DisplayTime="2000"
+	ObjectWnd_SmoothCount="0"
+	ObjectWnd_DrawArea="0"
+	ObjectWnd_RadiatingCount="0"
+	AlgorithmAreaEnable="0"
+	SaveData="1"
+	SaveDataPath="">
+	<MonitorPoint
+		Enable="0"
+		TextColor="0x00FFFFFF"
+		InactiveColor="0x0000FF00"
+		ActiveColor="0x000000FF"
+		RadiusScale="1.0"
+		Position="5.0,-150; 5.0,-120; 5.0,-90; 5.0,-60; 5.0,-30;" />
+</AppConfig>
