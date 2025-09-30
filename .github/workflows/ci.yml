@@ -1,3 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  node-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/nodejs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run lint
+
+  clang-format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check C/C++ formatting
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+          CHANGED=$(git ls-files "*.c" "*.cc" "*.cpp" "*.h" "*.hpp")
+          if [ -n "$CHANGED" ]; then
+            diff -u <(cat $CHANGED | cat) <(clang-format $CHANGED) || (echo "Run clang-format" && exit 1)
+          else
+            echo "No C/C++ files to check"
+          fi
+
 name: CI/CD Pipeline
 
 on:
