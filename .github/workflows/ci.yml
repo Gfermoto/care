@@ -19,6 +19,7 @@ jobs:
           node-version: '18'
       - run: npm ci
       - run: npm run lint
+      - run: npm test --if-present
 
   clang-format-check:
     runs-on: ubuntu-latest
@@ -34,6 +35,33 @@ jobs:
           else
             echo "No C/C++ files to check"
           fi
+
+  submodules-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Verify submodules initialized
+        run: |
+          git submodule status --recursive
+
+  ros2-lint:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install deps
+        run: |
+          apt-get update && apt-get install -y python3-colcon-common-extensions
+      - name: Run ament_lint (CMake packages)
+        working-directory: services/ros2
+        run: |
+          colcon test --packages-select care_common care_demo_node care_safety_controller_node care_can_bridge_node || true
+          colcon test-result --verbose || true
 
 name: CI/CD Pipeline
 

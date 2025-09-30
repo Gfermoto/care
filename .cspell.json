@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "useGitignore": true,
+  "language": "en,ru",
+  "allowCompoundWords": true,
+  "ignorePaths": [
+    ".git",
+    "node_modules",
+    "build",
+    "install",
+    "dist",
+    "coverage",
+    "**/*.min.*"
+  ],
+  "dictionaries": [
+    "cpp",
+    "softwareTerms",
+    "python",
+    "node",
+    "en_us"
+  ],
+  "words": [
+    "ROS2",
+    "rclcpp",
+    "colcon",
+    "twai",
+    "rclpy",
+    "rviz",
+    "Gfermoto",
+    "iwr6843aop",
+    "AOPEVM"
+  ]
+}
+
+

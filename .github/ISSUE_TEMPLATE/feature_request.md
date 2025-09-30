@@ -1,5 +1,19 @@
 ---
 name: Feature request
+about: Предложить улучшение или новую функцию
+labels: enhancement
+---
+
+### Проблема / мотивация
+
+### Предложенное решение
+
+### Альтернативы
+
+### Критерии приемки
+
+---
+name: Feature request
 about: Предложить новую функцию для C.A.R.E. системы
 title: '[FEATURE] '
 labels: enhancement

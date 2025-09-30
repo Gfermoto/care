@@ -1,0 +1,15 @@
+# CODEOWNERS
+
+# Default owners
+*       @gfer
+
+# ROS2 services
+services/ros2/**   @gfer
+
+# Node.js services
+services/nodejs/** @gfer
+
+# Docs
+docs/**            @gfer
+
+
