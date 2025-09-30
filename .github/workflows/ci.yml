@@ -76,6 +76,32 @@ jobs:
           colcon test --packages-select care_common care_demo_node care_safety_controller_node care_can_bridge_node || true
           colcon test-result --verbose || true
 
+  ros2-build:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup ccache
+        run: |
+          apt-get update && apt-get install -y ccache
+          echo "max_size = 2.0G" > /root/.ccache/ccache.conf || true
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /root/.ccache
+          key: ${{ runner.os }}-ccache-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-build-
+      - name: Install build deps
+        run: |
+          apt-get update && apt-get install -y python3-colcon-common-extensions
+          chmod +x tools/ros2_build.sh
+      - name: Build ROS2 packages
+        run: tools/ros2_build.sh
+
   clang-tidy:
     runs-on: ubuntu-latest
     container:
