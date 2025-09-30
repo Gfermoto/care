@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/nodejs/package-lock.json
       - run: npm ci
       - run: npm run lint
       - run: npm test --if-present
@@ -54,6 +56,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Setup ccache
+        run: |
+          apt-get update && apt-get install -y ccache
+          echo "max_size = 2.0G" > /root/.ccache/ccache.conf || true
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /root/.ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
       - name: Install deps
         run: |
           apt-get update && apt-get install -y python3-colcon-common-extensions
@@ -62,6 +75,23 @@ jobs:
         run: |
           colcon test --packages-select care_common care_demo_node care_safety_controller_node care_can_bridge_node || true
           colcon test-result --verbose || true
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-tidy
+        run: apt-get update && apt-get install -y clang-tidy
+      - name: Run clang-tidy (dry check)
+        run: |
+          FILES=$(git ls-files "**/*.cpp" "**/*.cc" "**/*.cxx" | tr '\n' ' ')
+          if [ -n "$FILES" ]; then
+            clang-tidy $FILES -- -Iservices/ros2 -std=c++17 || true
+          else
+            echo "No C++ files"
+          fi
 
 name: CI/CD Pipeline
 
