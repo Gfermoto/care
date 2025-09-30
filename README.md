@@ -48,7 +48,7 @@ CARE/
 
 ```bash
 ./infrastructure/scripts/configure_sensor.sh
-./start.sh
+./tools/start.sh
 ```
 
 ## 🧳 Разработка в Dev Container
