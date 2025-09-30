@@ -51,6 +51,22 @@ CARE/
 ./start.sh
 ```
 
+## 🧳 Разработка в Dev Container
+
+- Откройте репозиторий в контейнере (Reopen in Container). Образ: `ros:humble-desktop` + Node 18
+- Автоматически подтянутся submodules и зависимости `services/nodejs`
+- В контейнер включены: `colcon`, `clang-format`, `clang-tidy`, `cppcheck`, `rviz2`, `ccache`
+
+Сборка и тесты ROS 2:
+
+```bash
+# Сборка
+./tools/ros2_build.sh
+
+# Тесты / ament_lint
+./tools/ros2_test.sh
+```
+
 ## 📡 CAN протокол (кратко)
 - 0x100 — Emergency Stop
 - 0x200-0x202 — Target Data
@@ -65,6 +81,8 @@ CARE/
 - Настройка через ROS: см. `services/ros2/README.md`
 - Настройка/демо Node.js: `services/nodejs/stm32-config`
 - Инженерный UART: `tools/uart_engineering_setup.sh`
+ - Dev контейнер: `.devcontainer/` (Dockerfile + devcontainer.json)
+ - CI: `.github/workflows/ci.yml` (линты, сборки, ROS2), `codeql.yml`
 
 ## 🤝 Контрибьюция
 

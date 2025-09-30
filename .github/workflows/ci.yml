@@ -99,6 +99,16 @@ jobs:
         run: |
           apt-get update && apt-get install -y python3-colcon-common-extensions
           chmod +x tools/ros2_build.sh
+      - name: Cache colcon build/install/log
+        uses: actions/cache@v4
+        with:
+          path: |
+            services/ros2/build
+            services/ros2/install
+            services/ros2/log
+          key: ${{ runner.os }}-colcon-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-colcon-
       - name: Build ROS2 packages
         run: tools/ros2_build.sh
 
