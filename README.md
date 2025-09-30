@@ -1,22 +1,4 @@
 # 🛡️ C.A.R.E. - Collision Avoidance Radar Emergency System
-## Внешние примеры и MCP доступ
-
-- Репозиторий примера для TI IWR6843AOP: [nhma20/iwr6843aop_pub](https://github.com/nhma20/iwr6843aop_pub)
-- Submodule: код подключён в `services/ros2/third_party/iwr6843aop_pub`
-- MCP сервер для быстрых справок по репозиторию (Cursor): добавьте в `~/.cursor/mcp.json` или в проектный `.cursor/mcp.json` блок:
-
-```json
-{
-  "mcpServers": {
-    "iwr6843aop_pub Docs": {
-      "url": "https://gitmcp.io/nhma20/iwr6843aop_pub"
-    }
-  }
-}
-```
-
-После сохранения перезапустите Cursor.
-
 
 [![CI/CD Pipeline](https://github.com/Gfermoto/care/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/Gfermoto/care/actions)
 [![Security Scan](https://github.com/Gfermoto/care/workflows/security-scan/badge.svg)](https://github.com/Gfermoto/care/security)
