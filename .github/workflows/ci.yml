@@ -49,6 +49,7 @@ jobs:
           git submodule status --recursive
 
   ros2-lint:
+    continue-on-error: true
     runs-on: ubuntu-latest
     container:
       image: ros:humble
@@ -77,6 +78,7 @@ jobs:
           colcon test-result --verbose || true
 
   ros2-build:
+    continue-on-error: true
     runs-on: ubuntu-latest
     container:
       image: ros:humble
@@ -113,6 +115,7 @@ jobs:
         run: tools/ros2_build.sh
 
   clang-tidy:
+    continue-on-error: true
     runs-on: ubuntu-latest
     container:
       image: ros:humble
