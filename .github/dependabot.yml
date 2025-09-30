@@ -7,11 +7,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "gfer"
-    assignees:
-      - "gfer"
+    open-pull-requests-limit: 0
+    reviewers: []
+    assignees: []
     commit-message:
       prefix: "chore"
       include: "scope"
@@ -23,11 +21,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "gfer"
-    assignees:
-      - "gfer"
+    open-pull-requests-limit: 0
+    reviewers: []
+    assignees: []
     commit-message:
       prefix: "chore"
       include: "scope"
@@ -39,11 +35,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "gfer"
-    assignees:
-      - "gfer"
+    open-pull-requests-limit: 0
+    reviewers: []
+    assignees: []
     commit-message:
       prefix: "chore"
       include: "scope"
@@ -54,11 +48,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "gfer"
-    assignees:
-      - "gfer"
+    open-pull-requests-limit: 0
+    reviewers: []
+    assignees: []
     commit-message:
       prefix: "chore"
       include: "scope"
@@ -70,11 +62,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "gfer"
-    assignees:
-      - "gfer"
+    open-pull-requests-limit: 0
+    reviewers: []
+    assignees: []
     commit-message:
       prefix: "chore"
       include: "scope"
