@@ -1,0 +1,3 @@
+[submodule "services/ros2/third_party/iwr6843aop_pub"]
+	path = services/ros2/third_party/iwr6843aop_pub
+	url = https://github.com/nhma20/iwr6843aop_pub.git
