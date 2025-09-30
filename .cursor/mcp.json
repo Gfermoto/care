@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "GitKraken": {
+      "command": "/home/gfer/.cursor-server/data/User/globalStorage/eamodio.gitlens/gk",
+      "args": [
+        "mcp",
+        "--host=cursor",
+        "--source=gitlens",
+        "--scheme=cursor"
+      ],
+      "type": "stdio"
+    },
+    "iwr6843aop_pub Docs": {
+      "url": "https://gitmcp.io/nhma20/iwr6843aop_pub"
+    }
+  }
+}
