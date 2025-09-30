@@ -13,14 +13,18 @@
     "vscode": {
       "settings": {
         "editor.formatOnSave": true,
-        "files.eol": "\n"
+        "files.eol": "\n",
+        "C_Cpp.clang_format_style": "file",
+        "cmake.configureOnOpen": true
       },
       "extensions": [
         "ms-vscode.cmake-tools",
         "ms-python.python",
         "esbenp.prettier-vscode",
         "davidanson.vscode-markdownlint",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "xaver.clang-format",
+        "llvm-vs-code-extensions.vscode-clangd"
       ]
     }
   },
