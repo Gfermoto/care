@@ -1,0 +1,38 @@
+{
+  "name": "CARE Dev (ROS2 + Node + C++)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/CARE",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/CARE,type=bind,consistency=cached",
+  "remoteEnv": {
+    "ROS_DISTRO": "humble"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.eol": "\n"
+      },
+      "extensions": [
+        "ms-vscode.cmake-tools",
+        "ms-python.python",
+        "esbenp.prettier-vscode",
+        "davidanson.vscode-markdownlint",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.git,target=/workspaces/CARE/.git,type=bind"
+  ],
+  "runArgs": [
+    "--network=host",
+    "--privileged"
+  ],
+  "postCreateCommand": "bash -lc 'git submodule update --init --recursive && npm --prefix services/nodejs ci || true'"
+}
+
+
