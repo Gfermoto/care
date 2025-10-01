@@ -100,7 +100,7 @@ jobs:
       - name: Install build deps
         run: |
           apt-get update && apt-get install -y python3-colcon-common-extensions
-          chmod +x tools/ros2_build.sh
+          chmod +x scripts/ros2_build.sh
       - name: Cache colcon build/install/log
         uses: actions/cache@v4
         with:
@@ -112,7 +112,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-colcon-
       - name: Build ROS2 packages
-        run: tools/ros2_build.sh
+        run: scripts/ros2_build.sh
 
   clang-tidy:
     continue-on-error: true

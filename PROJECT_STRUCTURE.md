@@ -164,7 +164,7 @@ tests/
 ✅ **Централизация Docker** - один `docker-compose.yml` в `infrastructure/docker/`  
 ✅ **Разделение concerns** - `services/`, `platforms/`, `infrastructure/`  
 ✅ **Тесты отдельно** - `tests/` с unit/integration/e2e  
-✅ **Инструменты доступны** - `tools/` для быстрого доступа  
+✅ **Скрипты в одном месте** - `scripts/` для быстрого доступа  
 ✅ **CI/CD настроен** - `.github/workflows/` с линтами и тестами  
 ✅ **Dev Container** - `.devcontainer/` для одинаковой среды разработки  
 

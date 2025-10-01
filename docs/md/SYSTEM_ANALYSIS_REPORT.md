@@ -150,13 +150,13 @@ ros2 topic list | grep care
 ### **Тестовые скрипты:**
 ```bash
 # Полное тестирование исправлений
-./infrastructure/scripts/test_fixed_care.sh
+./scripts/test_fixed_care.sh
 
 # Отладочный режим
-./infrastructure/scripts/debug_care.sh
+./scripts/debug_care.sh
 
 # Обычный запуск
-./infrastructure/scripts/launch_care_demo.sh
+./scripts/launch_care_demo.sh
 ```
 
 ## 📈 **МЕТРИКИ УЛУЧШЕНИЯ**

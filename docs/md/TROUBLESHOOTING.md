@@ -72,10 +72,10 @@ for reason 'the timestamp on the message is earlier than all the data in the tra
 ### Быстрая диагностика:
 ```bash
 # Запуск отладочного скрипта
-./infrastructure/scripts/debug_care.sh
+./scripts/debug_care.sh
 
 # Проверка всех компонентов
-./infrastructure/scripts/monitor_care.sh
+./scripts/monitor_care.sh
 ```
 
 ### Пошаговая диагностика:
@@ -152,7 +152,7 @@ rm -rf build install log
 colcon build --packages-select care_radar_publisher
 
 # Перезапустить
-./infrastructure/scripts/launch_care_demo.sh
+./scripts/launch_care_demo.sh
 ```
 
 ### Если RViz2 зависает:

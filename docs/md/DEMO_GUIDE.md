@@ -15,7 +15,7 @@
 ### 1. Запуск полной системы
 ```bash
 cd /home/gfer/CARE
-./infrastructure/scripts/launch_care_demo.sh
+./scripts/launch_care_demo.sh
 ```
 
 Этот скрипт автоматически:
@@ -26,7 +26,7 @@ cd /home/gfer/CARE
 ### 2. Мониторинг системы (в отдельном терминале)
 ```bash
 cd /home/gfer/CARE
-./infrastructure/scripts/monitor_care.sh
+./scripts/monitor_care.sh
 ```
 
 ## 🎨 Что вы увидите в RViz2

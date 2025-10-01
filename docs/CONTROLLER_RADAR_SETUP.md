@@ -15,7 +15,7 @@ C.A.R.E. система поддерживает несколько способ
 ### 1. Автоматическая конфигурация датчика
 ```bash
 cd /home/gfer/CARE
-./infrastructure/scripts/configure_sensor.sh
+./scripts/configure_sensor.sh
 ```
 
 **Выберите тип датчика:**

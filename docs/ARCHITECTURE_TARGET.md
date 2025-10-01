@@ -37,7 +37,7 @@
 - Добавляются конфиг-IDs: 0x400/0x401 (+ ACK 0x480/0x481)
 - Документация и инструменты:
   - `docs/CAN_MESSAGES.md` — будет дополнен секцией 0x400/0x401
-  - `tools/debug_com_port.py` — инженерный UART уже добавлен
+  - `scripts/debug_com_port.py` — инженерный UART уже добавлен
   - `services/nodejs/stm32-config/` — отдельный Node.js сервис
 
 ## Режимы mock/real
