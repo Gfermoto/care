@@ -1,10 +1,50 @@
 #!/usr/bin/env node
 
 /**
- * C.A.R.E. API Service
+ * @file index.js
+ * @module care-api
+ * @description C.A.R.E. API Service - RESTful API для конфигурации радарной системы и доступа к данным
+ * @author C.A.R.E. Development Team
+ * @version 1.0.0
  * 
- * RESTful API for C.A.R.E. radar system configuration and data access
- * Provides endpoints for radar configuration, safety settings, and data logging
+ * @description
+ * Этот сервис предоставляет REST API для:
+ * - Получения и записи данных радара
+ * - Управления конфигурацией безопасности
+ * - Экспорта данных в CSV/JSON
+ * - Мониторинга статистики системы
+ * 
+ * ## API Endpoints:
+ * 
+ * ### Radar Data
+ * - `GET /api/radar/data` - Получить данные радара (с пагинацией)
+ * - `POST /api/radar/data` - Записать данные радара
+ * - `GET /api/export/radar` - Экспорт данных радара (CSV/JSON)
+ * 
+ * ### Safety
+ * - `GET /api/safety/logs` - Получить логи безопасности
+ * - `POST /api/safety/logs` - Записать лог безопасности
+ * - `GET /api/config/safety` - Получить конфигурацию безопасности
+ * - `POST /api/config/safety` - Обновить конфигурацию безопасности
+ * - `GET /api/export/safety` - Экспорт логов безопасности (CSV/JSON)
+ * 
+ * ### System
+ * - `GET /health` - Health check сервиса
+ * - `GET /api/statistics` - Статистика системы
+ * 
+ * ## Запуск:
+ * @example
+ * # Дефолтный порт 3001
+ * node index.js
+ * 
+ * # Кастомный порт
+ * PORT=8080 node index.js
+ * 
+ * @example
+ * // Использование как модуль
+ * const CareAPI = require('./care-api');
+ * const api = new CareAPI(3001);
+ * api.start();
  */
 
 const express = require('express');
@@ -16,14 +56,30 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * C.A.R.E. API Server - REST API для радарной системы
+ * @class
+ */
 class CareAPI {
+    /**
+     * Создаёт новый экземпляр API сервера
+     * @param {number} [port=3001] - Порт для запуска HTTP сервера
+     * 
+     * @example
+     * const api = new CareAPI(3001);
+     * api.start();
+     */
     constructor(port = 3001) {
         this.port = port;
         this.app = express();
         
-        // Data storage
+        /** @private {Array<Object>} Массив данных радара (макс 1000 записей) */
         this.radarData = [];
+        
+        /** @private {Array<Object>} Массив логов безопасности (макс 500 записей) */
         this.safetyLogs = [];
+        
+        /** @private {Array<Object>} Массив системных логов */
         this.systemLogs = [];
         
         // CSV writers
@@ -33,6 +89,12 @@ class CareAPI {
         this.setupRoutes();
     }
 
+    /**
+     * Настраивает CSV writers для экспорта данных
+     * @private
+     * @description Создаёт директорию data/ и инициализирует CSV writers
+     * для ежедневного логирования данных радара и событий безопасности
+     */
     setupCSVWriters() {
         const dataDir = path.join(__dirname, 'data');
         if (!fs.existsSync(dataDir)) {
@@ -64,6 +126,15 @@ class CareAPI {
         });
     }
 
+    /**
+     * Настраивает Express middleware
+     * @private
+     * @description Подключает:
+     * - helmet (безопасность HTTP заголовков)
+     * - cors (Cross-Origin Resource Sharing)
+     * - morgan (HTTP request logging)
+     * - express.json (парсинг JSON, лимит 10MB)
+     */
     setupMiddleware() {
         // Security
         this.app.use(helmet());
@@ -362,6 +433,15 @@ class CareAPI {
         });
     }
 
+    /**
+     * Запускает HTTP сервер
+     * @public
+     * @returns {void}
+     * 
+     * @example
+     * const api = new CareAPI(3001);
+     * api.start(); // Запускается на http://localhost:3001
+     */
     start() {
         this.app.listen(this.port, () => {
             console.log(`🚀 C.A.R.E. API Server running on port ${this.port}`);
@@ -370,6 +450,11 @@ class CareAPI {
         });
     }
 
+    /**
+     * Останавливает HTTP сервер
+     * @public
+     * @returns {void}
+     */
     stop() {
         console.log('🛑 C.A.R.E. API Server stopped');
     }
