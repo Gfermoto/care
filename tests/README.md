@@ -30,7 +30,7 @@ npm test
 
 ### ROS2
 ```bash
-./tools/ros2_test.sh
+./scripts/ros2_test.sh
 ```
 
 ### Python (если есть)

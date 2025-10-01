@@ -47,8 +47,8 @@ CARE/
 ## 🚀 Быстрый старт
 
 ```bash
-./infrastructure/scripts/configure_sensor.sh
-./tools/start.sh
+./scripts/configure_sensor.sh
+./scripts/start.sh
 ```
 
 ## 🧳 Разработка в Dev Container
@@ -61,10 +61,10 @@ CARE/
 
 ```bash
 # Сборка
-./tools/ros2_build.sh
+./scripts/ros2_build.sh
 
 # Тесты / ament_lint
-./tools/ros2_test.sh
+./scripts/ros2_test.sh
 ```
 
 ## 📡 CAN протокол (кратко)
@@ -80,9 +80,9 @@ CARE/
 ## 🧰 Полезное
 - Настройка через ROS: см. `services/ros2/README.md`
 - Настройка/демо Node.js: `services/nodejs/stm32-config`
-- Инженерный UART: `tools/uart_engineering_setup.sh`
- - Dev контейнер: `.devcontainer/` (Dockerfile + devcontainer.json)
- - CI: `.github/workflows/ci.yml` (линты, сборки, ROS2), `codeql.yml`
+- Инженерный UART: `scripts/uart_engineering_setup.sh`
+- Dev контейнер: `.devcontainer/` (Dockerfile + devcontainer.json)
+- CI: `.github/workflows/ci.yml` (линты, сборки, ROS2), `codeql.yml`
 
 ## 🤝 Контрибьюция
 

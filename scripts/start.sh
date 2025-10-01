@@ -10,7 +10,7 @@ cd /home/gfer/CARE
 if [ -z "$CARE_SENSOR_TYPE" ]; then
     echo "⚠️ Тип датчика не настроен!"
     echo "🔧 Настройте датчик:"
-    echo "   ./infrastructure/scripts/configure_sensor.sh"
+    echo "   ./scripts/configure_sensor.sh"
     exit 1
 fi
 
@@ -20,8 +20,8 @@ echo "📊 Конфигурация датчика: $CARE_SENSOR_TYPE"
 if [ ! -f "/opt/ros/jazzy/bin/ros2" ]; then
     echo "❌ ROS 2 Jazzy не найден!"
     echo "📦 Установите ROS 2 Jazzy:"
-    echo "   chmod +x infrastructure/scripts/install_ros2_jazzy.sh"
-    echo "   ./infrastructure/scripts/install_ros2_jazzy.sh"
+    echo "   chmod +x scripts/install_ros2_jazzy.sh"
+    echo "   ./scripts/install_ros2_jazzy.sh"
     exit 1
 fi
 
