@@ -6,18 +6,18 @@
  * @description C.A.R.E. Web Dashboard - Веб-интерфейс реального времени для мониторинга
  * @author C.A.R.E. Development Team
  * @version 1.0.0
- * 
+ *
  * @description
  * Веб-дашборд предоставляет интерфейс для мониторинга и визуализации данных
  * радарной системы C.A.R.E. в реальном времени через WebSocket.
- * 
+ *
  * ## Основные функции:
  * - Real-time визуализация целей радара
  * - Отображение статуса безопасности (emergency stop)
  * - Статистика системы (uptime, messages/sec, latency)
  * - WebSocket для live обновлений данных
  * - REST API для получения снимков данных
- * 
+ *
  * ## Endpoints:
  * - `GET /` - главная страница дашборда
  * - `GET /api/status` - полный статус системы
@@ -25,7 +25,7 @@
  * - `GET /api/safety` - статус безопасности
  * - `GET /api/statistics` - статистика
  * - `WS ws://localhost:3000` - WebSocket для live данных
- * 
+ *
  * ## WebSocket Protocol:
  * Отправляет JSON сообщения каждые 100мс:
  * ```json
@@ -39,14 +39,14 @@
  *   "timestamp": "2025-10-01T12:00:00.000Z"
  * }
  * ```
- * 
+ *
  * @example
  * # Запуск на порту 3000
  * node index.js
- * 
+ *
  * # Кастомный порт
  * PORT=8080 node index.js
- * 
+ *
  * # Откройте в браузере
  * http://localhost:3000
  */
@@ -67,7 +67,7 @@ class CareDashboard {
         this.server = http.createServer(this.app);
         this.wss = new WebSocket.Server({ server: this.server });
         this.clients = new Set();
-        
+
         // Dashboard data
         this.dashboardData = {
             radar: {
@@ -94,7 +94,7 @@ class CareDashboard {
                 peakLatency: 0
             }
         };
-        
+
         this.setupMiddleware();
         this.setupRoutes();
         this.setupWebSocket();
@@ -112,13 +112,13 @@ class CareDashboard {
                 }
             }
         }));
-        
+
         // CORS
         this.app.use(cors());
-        
+
         // Logging
         this.app.use(morgan('combined'));
-        
+
         // Static files
         this.app.use(express.static(path.join(__dirname, 'public')));
         this.app.use(express.json());
@@ -129,7 +129,7 @@ class CareDashboard {
         this.app.get('/', (req, res) => {
             res.sendFile(path.join(__dirname, 'public', 'index.html'));
         });
-        
+
         // API endpoints
         this.app.get('/api/status', (req, res) => {
             res.json({
@@ -138,7 +138,7 @@ class CareDashboard {
                 timestamp: moment().toISOString()
             });
         });
-        
+
         this.app.get('/api/radar', (req, res) => {
             res.json({
                 success: true,
@@ -146,7 +146,7 @@ class CareDashboard {
                 timestamp: moment().toISOString()
             });
         });
-        
+
         this.app.get('/api/safety', (req, res) => {
             res.json({
                 success: true,
@@ -154,7 +154,7 @@ class CareDashboard {
                 timestamp: moment().toISOString()
             });
         });
-        
+
         this.app.get('/api/statistics', (req, res) => {
             res.json({
                 success: true,
@@ -162,7 +162,7 @@ class CareDashboard {
                 timestamp: moment().toISOString()
             });
         });
-        
+
         // Health check
         this.app.get('/health', (req, res) => {
             res.json({
@@ -177,18 +177,18 @@ class CareDashboard {
         this.wss.on('connection', (ws, req) => {
             console.log('🔌 New WebSocket client connected');
             this.clients.add(ws);
-            
+
             // Send initial data
             ws.send(JSON.stringify({
                 type: 'initial_data',
                 data: this.dashboardData
             }));
-            
+
             ws.on('close', () => {
                 console.log('🔌 WebSocket client disconnected');
                 this.clients.delete(ws);
             });
-            
+
             ws.on('error', (error) => {
                 console.error('❌ WebSocket error:', error);
                 this.clients.delete(ws);
@@ -200,7 +200,7 @@ class CareDashboard {
         this.dashboardData.radar.targets = targets;
         this.dashboardData.radar.lastUpdate = moment().toISOString();
         this.dashboardData.radar.activeTargets = targets.filter(t => t.valid).length;
-        
+
         this.broadcastUpdate('radar', this.dashboardData.radar);
     }
 
@@ -210,7 +210,7 @@ class CareDashboard {
             ...safety,
             lastUpdate: moment().toISOString()
         };
-        
+
         this.broadcastUpdate('safety', this.dashboardData.safety);
     }
 
@@ -220,7 +220,7 @@ class CareDashboard {
             ...system,
             lastUpdate: moment().toISOString()
         };
-        
+
         this.broadcastUpdate('system', this.dashboardData.system);
     }
 
@@ -230,7 +230,7 @@ class CareDashboard {
             ...stats,
             lastUpdate: moment().toISOString()
         };
-        
+
         this.broadcastUpdate('statistics', this.dashboardData.statistics);
     }
 
@@ -240,7 +240,7 @@ class CareDashboard {
             data: data,
             timestamp: moment().toISOString()
         });
-        
+
         this.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(message);
@@ -265,20 +265,20 @@ class CareDashboard {
 // Main execution
 function main() {
     const dashboard = new CareDashboard(process.env.PORT || 3000);
-    
+
     // Handle graceful shutdown
     process.on('SIGINT', () => {
         console.log('\n🛑 Shutting down C.A.R.E. Dashboard...');
         dashboard.stop();
         process.exit(0);
     });
-    
+
     process.on('SIGTERM', () => {
         console.log('\n🛑 Shutting down C.A.R.E. Dashboard...');
         dashboard.stop();
         process.exit(0);
     });
-    
+
     dashboard.start();
 }
 

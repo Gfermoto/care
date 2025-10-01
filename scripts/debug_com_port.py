@@ -14,13 +14,13 @@ C.A.R.E. COM Port Debug Tool
 Examples:
     Базовое использование:
         $ python debug_com_port.py --port /dev/ttyUSB0
-    
+
     Автовыбор порта:
         $ python debug_com_port.py --auto
-    
+
     Отправка команды:
         $ python debug_com_port.py --port COM3 --command "AT+STATUS"
-    
+
     Мониторинг данных:
         $ python debug_com_port.py --port COM3 --monitor
 
@@ -41,24 +41,24 @@ from datetime import datetime
 class COMDebugger:
     """
     Отладчик COM порта для взаимодействия с ESP32/STM32 контроллерами.
-    
+
     Attributes:
         port (str): Имя COM порта (например, '/dev/ttyUSB0' или 'COM3')
         baudrate (int): Скорость передачи данных (default: 115200)
         serial_conn (serial.Serial): Активное serial соединение
         running (bool): Флаг состояния мониторинга
-        
+
     Examples:
         >>> debugger = COMDebugger('/dev/ttyUSB0', 115200)
         >>> if debugger.connect():
         ...     debugger.send_command('AT+STATUS')
         ...     debugger.disconnect()
     """
-    
+
     def __init__(self, port=None, baudrate=115200):
         """
         Инициализирует отладчик COM порта.
-        
+
         Args:
             port (str, optional): Имя COM порта. Defaults to None.
             baudrate (int, optional): Скорость передачи. Defaults to 115200.
@@ -67,7 +67,7 @@ class COMDebugger:
         self.baudrate = baudrate
         self.serial_conn = None
         self.running = False
-        
+
     def list_ports(self):
         """Список доступных COM портов"""
         ports = serial.tools.list_ports.comports()
@@ -75,16 +75,16 @@ class COMDebugger:
         for i, port in enumerate(ports):
             print(f"  {i+1}. {port.device} - {port.description}")
         return ports
-    
+
     def connect(self, port=None):
         """Подключение к COM порту"""
         if port:
             self.port = port
-            
+
         if not self.port:
             print("❌ Порт не указан!")
             return False
-            
+
         try:
             self.serial_conn = serial.Serial(
                 port=self.port,
@@ -94,95 +94,95 @@ class COMDebugger:
                 stopbits=serial.STOPBITS_ONE,
                 bytesize=serial.EIGHTBITS
             )
-            
+
             print(f"✅ Подключен к {self.port} ({self.baudrate} бод)")
             return True
-            
+
         except Exception as e:
             print(f"❌ Ошибка подключения: {e}")
             return False
-    
+
     def disconnect(self):
         """Отключение от COM порта"""
         if self.serial_conn and self.serial_conn.is_open:
             self.serial_conn.close()
             print("🔌 Отключен от COM порта")
-    
+
     def send_command(self, command):
         """Отправка команды"""
         if not self.serial_conn or not self.serial_conn.is_open:
             print("❌ COM порт не подключен!")
             return False
-            
+
         try:
             # Добавляем \r\n если нет
             if not command.endswith('\r\n'):
                 command += '\r\n'
-                
+
             self.serial_conn.write(command.encode())
             print(f"📤 Отправлено: {command.strip()}")
             return True
-            
+
         except Exception as e:
             print(f"❌ Ошибка отправки: {e}")
             return False
-    
+
     def read_response(self, timeout=2):
         """Чтение ответа"""
         if not self.serial_conn or not self.serial_conn.is_open:
             return None
-            
+
         try:
             start_time = time.time()
             response = ""
-            
+
             while time.time() - start_time < timeout:
                 if self.serial_conn.in_waiting > 0:
                     data = self.serial_conn.read(self.serial_conn.in_waiting)
                     response += data.decode('utf-8', errors='ignore')
-                    
+
                     if '\n' in response:
                         break
-                        
+
                 time.sleep(0.01)
-            
+
             if response:
                 print(f"📥 Получено: {response.strip()}")
                 return response.strip()
             else:
                 print("⏰ Таймаут ожидания ответа")
                 return None
-                
+
         except Exception as e:
             print(f"❌ Ошибка чтения: {e}")
             return None
-    
+
     def monitor_continuous(self):
         """Непрерывный мониторинг"""
         if not self.serial_conn or not self.serial_conn.is_open:
             print("❌ COM порт не подключен!")
             return
-            
+
         print("📡 Непрерывный мониторинг (Ctrl+C для выхода)...")
         self.running = True
-        
+
         try:
             while self.running:
                 if self.serial_conn.in_waiting > 0:
                     data = self.serial_conn.read(self.serial_conn.in_waiting)
                     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
                     print(f"[{timestamp}] {data.decode('utf-8', errors='ignore').strip()}")
-                    
+
                 time.sleep(0.01)
-                
+
         except KeyboardInterrupt:
             print("\n🛑 Мониторинг остановлен")
             self.running = False
-    
+
     def configure_radar(self):
         """Настройка радара LD2450"""
         print("📡 Настройка радара LD2450...")
-        
+
         # Команды настройки LD2450
         commands = [
             "AT+VERSION",           # Версия
@@ -193,17 +193,17 @@ class COMDebugger:
             "AT+SAVE",              # Сохранение
             "AT+RESET"              # Перезагрузка
         ]
-        
+
         for cmd in commands:
             self.send_command(cmd)
             time.sleep(0.5)
             self.read_response()
             time.sleep(0.5)
-    
+
     def configure_controller(self):
         """Настройка контроллера"""
         print("🎛️ Настройка контроллера...")
-        
+
         # Команды настройки контроллера
         commands = [
             "CONFIG:CAN:500000",    # CAN 500 кбит/с
@@ -212,17 +212,17 @@ class COMDebugger:
             "CONFIG:SAVE",          # Сохранение
             "CONFIG:RESET"          # Перезагрузка
         ]
-        
+
         for cmd in commands:
             self.send_command(cmd)
             time.sleep(0.5)
             self.read_response()
             time.sleep(0.5)
-    
+
     def test_radar(self):
         """Тестирование радара"""
         print("🧪 Тестирование радара...")
-        
+
         # Команды тестирования
         commands = [
             "AT+STATUS",            # Статус
@@ -230,17 +230,17 @@ class COMDebugger:
             "AT+TEST",              # Тест
             "AT+INFO"               # Информация
         ]
-        
+
         for cmd in commands:
             self.send_command(cmd)
             time.sleep(1)
             self.read_response()
             time.sleep(1)
-    
+
     def test_controller(self):
         """Тестирование контроллера"""
         print("🧪 Тестирование контроллера...")
-        
+
         # Команды тестирования
         commands = [
             "STATUS",               # Статус системы
@@ -248,7 +248,7 @@ class COMDebugger:
             "RADAR:STATUS",          # Статус радара
             "SAFETY:STATUS"         # Статус безопасности
         ]
-        
+
         for cmd in commands:
             self.send_command(cmd)
             time.sleep(1)
@@ -266,24 +266,24 @@ def main():
     parser.add_argument('--test-radar', action='store_true', help='Тестирование радара')
     parser.add_argument('--test-controller', action='store_true', help='Тестирование контроллера')
     parser.add_argument('--command', '-c', help='Отправить команду')
-    
+
     args = parser.parse_args()
-    
+
     debugger = COMDebugger(args.port, args.baudrate)
-    
+
     try:
         if args.list:
             debugger.list_ports()
             return
-        
+
         if not args.port:
             print("❌ Укажите COM порт с --port")
             debugger.list_ports()
             return
-        
+
         if not debugger.connect():
             return
-        
+
         if args.monitor:
             debugger.monitor_continuous()
         elif args.configure_radar:
@@ -301,11 +301,11 @@ def main():
             # Интерактивный режим
             print("🔧 C.A.R.E. COM Debug Tool - Интерактивный режим")
             print("Команды: monitor, configure-radar, configure-controller, test-radar, test-controller, exit")
-            
+
             while True:
                 try:
                     cmd = input("CARE> ").strip()
-                    
+
                     if cmd.lower() == 'exit':
                         break
                     elif cmd.lower() == 'monitor':
@@ -321,11 +321,11 @@ def main():
                     elif cmd:
                         debugger.send_command(cmd)
                         debugger.read_response()
-                        
+
                 except KeyboardInterrupt:
                     print("\n🛑 Выход...")
                     break
-    
+
     finally:
         debugger.disconnect()
 

@@ -102,25 +102,53 @@ class CareCANBridge {
      * @constructor
      */
     constructor() {
-        /** @private {Object|null} CAN канал (socketcan или mock) */
+        /** 
+         * @private 
+         * @type {Object|null}
+         * @description CAN канал (socketcan или mock) 
+         */
         this.canChannel = null;
-
-        /** @private {Object|null} ROS2 нода */
+        
+        /** 
+         * @private 
+         * @type {Object|null}
+         * @description ROS2 нода 
+         */
         this.rosNode = null;
-
-        /** @private {Object|null} Publisher для данных радара */
+        
+        /** 
+         * @private 
+         * @type {Object|null}
+         * @description Publisher для данных радара 
+         */
         this.radarPublisher = null;
-
-        /** @private {Object|null} Publisher для статуса безопасности */
+        
+        /** 
+         * @private 
+         * @type {Object|null}
+         * @description Publisher для статуса безопасности 
+         */
         this.safetyPublisher = null;
-
-        /** @private {Object|null} ROS2 service для конфигурации */
+        
+        /** 
+         * @private 
+         * @type {Object|null}
+         * @description ROS2 service для конфигурации 
+         */
         this.configService = null;
-
-        /** @private {boolean} Флаг состояния моста */
+        
+        /** 
+         * @private 
+         * @type {boolean}
+         * @description Флаг состояния моста 
+         */
         this.isRunning = false;
-
-        /** @private {Object} Статистика обработки сообщений */
+        
+        /** 
+         * @private 
+         * @type {Object}
+         * @description Статистика обработки сообщений 
+         */
         this.stats = {
             messagesReceived: 0,
             messagesPublished: 0,
