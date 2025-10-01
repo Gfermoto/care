@@ -1,7 +1,33 @@
 #!/usr/bin/env python3
 """
 C.A.R.E. COM Port Debug Tool
-Инструмент для отладки и настройки радара и контроллера через COM порт
+
+Инструмент для отладки и настройки радара LD2450 и контроллера ESP32/STM32 через COM порт.
+
+Модуль предоставляет функции для:
+- Сканирования доступных COM портов
+- Подключения к устройствам (ESP32/STM32)
+- Отправки команд конфигурации
+- Чтения и парсинга ответов от устройства
+- Мониторинга данных в реальном времени
+
+Examples:
+    Базовое использование:
+        $ python debug_com_port.py --port /dev/ttyUSB0
+    
+    Автовыбор порта:
+        $ python debug_com_port.py --auto
+    
+    Отправка команды:
+        $ python debug_com_port.py --port COM3 --command "AT+STATUS"
+    
+    Мониторинг данных:
+        $ python debug_com_port.py --port COM3 --monitor
+
+Attributes:
+    DEFAULT_BAUDRATE (int): Стандартная скорость (115200 бод)
+    TIMEOUT (float): Таймаут чтения (1 секунда)
+
 """
 
 import serial
@@ -13,7 +39,30 @@ import threading
 from datetime import datetime
 
 class COMDebugger:
+    """
+    Отладчик COM порта для взаимодействия с ESP32/STM32 контроллерами.
+    
+    Attributes:
+        port (str): Имя COM порта (например, '/dev/ttyUSB0' или 'COM3')
+        baudrate (int): Скорость передачи данных (default: 115200)
+        serial_conn (serial.Serial): Активное serial соединение
+        running (bool): Флаг состояния мониторинга
+        
+    Examples:
+        >>> debugger = COMDebugger('/dev/ttyUSB0', 115200)
+        >>> if debugger.connect():
+        ...     debugger.send_command('AT+STATUS')
+        ...     debugger.disconnect()
+    """
+    
     def __init__(self, port=None, baudrate=115200):
+        """
+        Инициализирует отладчик COM порта.
+        
+        Args:
+            port (str, optional): Имя COM порта. Defaults to None.
+            baudrate (int, optional): Скорость передачи. Defaults to 115200.
+        """
         self.port = port
         self.baudrate = baudrate
         self.serial_conn = None

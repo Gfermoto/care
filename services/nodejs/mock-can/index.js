@@ -1,10 +1,48 @@
 #!/usr/bin/env node
 
 /**
- * C.A.R.E. Mock CAN Interface
+ * @file index.js
+ * @module mock-can
+ * @description C.A.R.E. Mock CAN Interface - Эмулятор CAN шины для тестирования
+ * @author C.A.R.E. Development Team
+ * @version 1.0.0
  * 
- * Имитирует CAN интерфейс для тестирования без физического железа
- * Генерирует реалистичные данные радара LD2450
+ * @description
+ * Эмулирует физический CAN интерфейс для разработки и тестирования без реального
+ * оборудования (ESP32/STM32 + радар LD2450). Генерирует реалистичные данные целей
+ * с движением, триггерит события emergency stop.
+ * 
+ * ## Основные функции:
+ * - Генерация синтетических CAN сообщений (0x100-0x400)
+ * - Симуляция 1-3 движущихся целей
+ * - Эмуляция emergency stop при приближении целей
+ * - Реалистичная физика движения (скорость, траектория)
+ * - EventEmitter API совместимый с socketcan
+ * 
+ * ## Генерируемые CAN ID:
+ * - `0x100` - Emergency Stop (при distance < safetyZone.minDistance)
+ * - `0x200-0x202` - Target Data (x, y, distance, speed для 3 целей)
+ * - `0x300` - System Status (состояние системы)
+ * 
+ * ## События (EventEmitter):
+ * - `message` - новое CAN сообщение получено
+ * - `start` - Mock CAN запущен
+ * - `stop` - Mock CAN остановлен
+ * 
+ * @example
+ * const MockCANInterface = require('./mock-can');
+ * 
+ * const mockCAN = new MockCANInterface({
+ *   targetCount: 2,
+ *   updateInterval: 50, // мс
+ *   safetyZone: { minDistance: 300, maxDistance: 6000 }
+ * });
+ * 
+ * mockCAN.on('message', (msg) => {
+ *   console.log(`CAN ID: 0x${msg.id.toString(16)}, Data:`, msg.data);
+ * });
+ * 
+ * mockCAN.start();
  */
 
 const EventEmitter = require('events');

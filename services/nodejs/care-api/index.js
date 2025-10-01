@@ -6,40 +6,40 @@
  * @description C.A.R.E. API Service - RESTful API для конфигурации радарной системы и доступа к данным
  * @author C.A.R.E. Development Team
  * @version 1.0.0
- * 
+ *
  * @description
  * Этот сервис предоставляет REST API для:
  * - Получения и записи данных радара
  * - Управления конфигурацией безопасности
  * - Экспорта данных в CSV/JSON
  * - Мониторинга статистики системы
- * 
+ *
  * ## API Endpoints:
- * 
+ *
  * ### Radar Data
  * - `GET /api/radar/data` - Получить данные радара (с пагинацией)
  * - `POST /api/radar/data` - Записать данные радара
  * - `GET /api/export/radar` - Экспорт данных радара (CSV/JSON)
- * 
+ *
  * ### Safety
  * - `GET /api/safety/logs` - Получить логи безопасности
  * - `POST /api/safety/logs` - Записать лог безопасности
  * - `GET /api/config/safety` - Получить конфигурацию безопасности
  * - `POST /api/config/safety` - Обновить конфигурацию безопасности
  * - `GET /api/export/safety` - Экспорт логов безопасности (CSV/JSON)
- * 
+ *
  * ### System
  * - `GET /health` - Health check сервиса
  * - `GET /api/statistics` - Статистика системы
- * 
+ *
  * ## Запуск:
  * @example
  * # Дефолтный порт 3001
  * node index.js
- * 
+ *
  * # Кастомный порт
  * PORT=8080 node index.js
- * 
+ *
  * @example
  * // Использование как модуль
  * const CareAPI = require('./care-api');
@@ -64,7 +64,7 @@ class CareAPI {
     /**
      * Создаёт новый экземпляр API сервера
      * @param {number} [port=3001] - Порт для запуска HTTP сервера
-     * 
+     *
      * @example
      * const api = new CareAPI(3001);
      * api.start();
@@ -72,19 +72,19 @@ class CareAPI {
     constructor(port = 3001) {
         this.port = port;
         this.app = express();
-        
+
         /** @private {Array<Object>} Массив данных радара (макс 1000 записей) */
         this.radarData = [];
-        
+
         /** @private {Array<Object>} Массив логов безопасности (макс 500 записей) */
         this.safetyLogs = [];
-        
+
         /** @private {Array<Object>} Массив системных логов */
         this.systemLogs = [];
-        
+
         // CSV writers
         this.setupCSVWriters();
-        
+
         this.setupMiddleware();
         this.setupRoutes();
     }
@@ -138,13 +138,13 @@ class CareAPI {
     setupMiddleware() {
         // Security
         this.app.use(helmet());
-        
+
         // CORS
         this.app.use(cors());
-        
+
         // Logging
         this.app.use(morgan('combined'));
-        
+
         // JSON parsing
         this.app.use(express.json({ limit: '10mb' }));
         this.app.use(express.urlencoded({ extended: true }));
@@ -165,14 +165,14 @@ class CareAPI {
         this.app.get('/api/radar/data', (req, res) => {
             const limit = parseInt(req.query.limit) || 100;
             const offset = parseInt(req.query.offset) || 0;
-            
+
             const data = this.radarData
                 .slice(offset, offset + limit)
                 .map(entry => ({
                     ...entry,
                     timestamp: moment(entry.timestamp).toISOString()
                 }));
-            
+
             res.json({
                 success: true,
                 data: data,
@@ -188,22 +188,22 @@ class CareAPI {
                     timestamp: moment().toISOString(),
                     ...req.body
                 };
-                
+
                 this.radarData.push(radarData);
-                
+
                 // Keep only last 1000 entries in memory
                 if (this.radarData.length > 1000) {
                     this.radarData = this.radarData.slice(-1000);
                 }
-                
+
                 // Log to CSV
                 this.radarCsvWriter.writeRecords([radarData]).catch(console.error);
-                
+
                 res.json({
                     success: true,
                     message: 'Radar data recorded successfully'
                 });
-                
+
             } catch (error) {
                 res.status(500).json({
                     success: false,
@@ -217,14 +217,14 @@ class CareAPI {
         this.app.get('/api/safety/logs', (req, res) => {
             const limit = parseInt(req.query.limit) || 100;
             const offset = parseInt(req.query.offset) || 0;
-            
+
             const data = this.safetyLogs
                 .slice(offset, offset + limit)
                 .map(entry => ({
                     ...entry,
                     timestamp: moment(entry.timestamp).toISOString()
                 }));
-            
+
             res.json({
                 success: true,
                 data: data,
@@ -240,22 +240,22 @@ class CareAPI {
                     timestamp: moment().toISOString(),
                     ...req.body
                 };
-                
+
                 this.safetyLogs.push(safetyLog);
-                
+
                 // Keep only last 500 entries in memory
                 if (this.safetyLogs.length > 500) {
                     this.safetyLogs = this.safetyLogs.slice(-500);
                 }
-                
+
                 // Log to CSV
                 this.safetyCsvWriter.writeRecords([safetyLog]).catch(console.error);
-                
+
                 res.json({
                     success: true,
                     message: 'Safety log recorded successfully'
                 });
-                
+
             } catch (error) {
                 res.status(500).json({
                     success: false,
@@ -282,7 +282,7 @@ class CareAPI {
         this.app.post('/api/config/safety', (req, res) => {
             try {
                 const config = req.body;
-                
+
                 // Validate configuration
                 if (config.min_safe_distance < 100 || config.min_safe_distance > 2000) {
                     return res.status(400).json({
@@ -290,23 +290,23 @@ class CareAPI {
                         message: 'Invalid min_safe_distance (must be 100-2000mm)'
                     });
                 }
-                
+
                 if (config.max_safe_distance < 1000 || config.max_safe_distance > 10000) {
                     return res.status(400).json({
                         success: false,
                         message: 'Invalid max_safe_distance (must be 1000-10000mm)'
                     });
                 }
-                
+
                 // Here you would send configuration to the microcontroller
                 console.log('⚙️ Safety configuration updated:', config);
-                
+
                 res.json({
                     success: true,
                     message: 'Safety configuration updated successfully',
                     data: config
                 });
-                
+
             } catch (error) {
                 res.status(500).json({
                     success: false,
@@ -321,19 +321,19 @@ class CareAPI {
             const now = moment();
             const today = now.startOf('day');
             const yesterday = now.clone().subtract(1, 'day').startOf('day');
-            
-            const todayRadarData = this.radarData.filter(entry => 
+
+            const todayRadarData = this.radarData.filter(entry =>
                 moment(entry.timestamp).isAfter(today)
             );
-            
-            const todaySafetyLogs = this.safetyLogs.filter(entry => 
+
+            const todaySafetyLogs = this.safetyLogs.filter(entry =>
                 moment(entry.timestamp).isAfter(today)
             );
-            
-            const emergencyStops = todaySafetyLogs.filter(entry => 
+
+            const emergencyStops = todaySafetyLogs.filter(entry =>
                 entry.emergency_stop === true
             ).length;
-            
+
             res.json({
                 success: true,
                 data: {
@@ -360,7 +360,7 @@ class CareAPI {
         this.app.get('/api/export/radar', (req, res) => {
             const format = req.query.format || 'json';
             const date = req.query.date || moment().format('YYYY-MM-DD');
-            
+
             if (format === 'csv') {
                 const csvPath = path.join(__dirname, 'data', `radar_data_${date}.csv`);
                 if (fs.existsSync(csvPath)) {
@@ -372,10 +372,10 @@ class CareAPI {
                     });
                 }
             } else {
-                const data = this.radarData.filter(entry => 
+                const data = this.radarData.filter(entry =>
                     moment(entry.timestamp).format('YYYY-MM-DD') === date
                 );
-                
+
                 res.json({
                     success: true,
                     data: data,
@@ -388,7 +388,7 @@ class CareAPI {
         this.app.get('/api/export/safety', (req, res) => {
             const format = req.query.format || 'json';
             const date = req.query.date || moment().format('YYYY-MM-DD');
-            
+
             if (format === 'csv') {
                 const csvPath = path.join(__dirname, 'data', `safety_logs_${date}.csv`);
                 if (fs.existsSync(csvPath)) {
@@ -400,10 +400,10 @@ class CareAPI {
                     });
                 }
             } else {
-                const data = this.safetyLogs.filter(entry => 
+                const data = this.safetyLogs.filter(entry =>
                     moment(entry.timestamp).format('YYYY-MM-DD') === date
                 );
-                
+
                 res.json({
                     success: true,
                     data: data,
@@ -437,7 +437,7 @@ class CareAPI {
      * Запускает HTTP сервер
      * @public
      * @returns {void}
-     * 
+     *
      * @example
      * const api = new CareAPI(3001);
      * api.start(); // Запускается на http://localhost:3001
@@ -463,20 +463,20 @@ class CareAPI {
 // Main execution
 function main() {
     const api = new CareAPI(process.env.PORT || 3001);
-    
+
     // Handle graceful shutdown
     process.on('SIGINT', () => {
         console.log('\n🛑 Shutting down C.A.R.E. API Server...');
         api.stop();
         process.exit(0);
     });
-    
+
     process.on('SIGTERM', () => {
         console.log('\n🛑 Shutting down C.A.R.E. API Server...');
         api.stop();
         process.exit(0);
     });
-    
+
     api.start();
 }
 

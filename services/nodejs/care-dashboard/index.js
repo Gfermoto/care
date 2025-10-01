@@ -1,10 +1,54 @@
 #!/usr/bin/env node
 
 /**
- * C.A.R.E. Web Dashboard
+ * @file index.js
+ * @module care-dashboard
+ * @description C.A.R.E. Web Dashboard - Веб-интерфейс реального времени для мониторинга
+ * @author C.A.R.E. Development Team
+ * @version 1.0.0
  * 
- * Real-time web interface for monitoring C.A.R.E. radar system
- * Shows radar targets, safety status, and system statistics
+ * @description
+ * Веб-дашборд предоставляет интерфейс для мониторинга и визуализации данных
+ * радарной системы C.A.R.E. в реальном времени через WebSocket.
+ * 
+ * ## Основные функции:
+ * - Real-time визуализация целей радара
+ * - Отображение статуса безопасности (emergency stop)
+ * - Статистика системы (uptime, messages/sec, latency)
+ * - WebSocket для live обновлений данных
+ * - REST API для получения снимков данных
+ * 
+ * ## Endpoints:
+ * - `GET /` - главная страница дашборда
+ * - `GET /api/status` - полный статус системы
+ * - `GET /api/radar` - данные радара
+ * - `GET /api/safety` - статус безопасности
+ * - `GET /api/statistics` - статистика
+ * - `WS ws://localhost:3000` - WebSocket для live данных
+ * 
+ * ## WebSocket Protocol:
+ * Отправляет JSON сообщения каждые 100мс:
+ * ```json
+ * {
+ *   "type": "update",
+ *   "data": {
+ *     "radar": { "targets": [...], "activeTargets": 3 },
+ *     "safety": { "emergencyStop": false, "minDistance": 500 },
+ *     "system": { "status": "ok", "uptime": 12345 }
+ *   },
+ *   "timestamp": "2025-10-01T12:00:00.000Z"
+ * }
+ * ```
+ * 
+ * @example
+ * # Запуск на порту 3000
+ * node index.js
+ * 
+ * # Кастомный порт
+ * PORT=8080 node index.js
+ * 
+ * # Откройте в браузере
+ * http://localhost:3000
  */
 
 const express = require('express');
