@@ -1,0 +1,192 @@
+{
+  "folders": [
+    {
+      "name": "🏠 CARE (Root)",
+      "path": "."
+    },
+    {
+      "name": "🌐 Node.js Services",
+      "path": "services/nodejs"
+    },
+    {
+      "name": "🤖 ROS2 Packages",
+      "path": "services/ros2"
+    },
+    {
+      "name": "📡 ESP32 Platform",
+      "path": "platforms/esp32"
+    },
+    {
+      "name": "🔧 STM32 Platform",
+      "path": "platforms/stm32"
+    },
+    {
+      "name": "📜 Scripts",
+      "path": "scripts"
+    },
+    {
+      "name": "🧪 Tests",
+      "path": "tests"
+    },
+    {
+      "name": "📚 Documentation",
+      "path": "docs"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/node_modules": true,
+      "**/build": true,
+      "**/install": true,
+      "**/log": true,
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      ".pio": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/build": true,
+      "**/install": true,
+      "**/log": true,
+      ".pio": true
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "[markdown]": {
+      "files.trimTrailingWhitespace": false
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.clang_format_style": "file",
+    "python.analysis.extraPaths": [
+      "/opt/ros/humble/lib/python3.10/site-packages"
+    ],
+    "ros.distro": "humble",
+    "terminal.integrated.env.linux": {
+      "ROS_DISTRO": "humble"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.cpptools",
+      "ms-vscode.cmake-tools",
+      "ms-python.python",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "davidanson.vscode-markdownlint",
+      "redhat.vscode-yaml",
+      "ms-azuretools.vscode-docker",
+      "platformio.platformio-ide",
+      "streetsidesoftware.code-spell-checker",
+      "streetsidesoftware.code-spell-checker-russian",
+      "eamodio.gitlens",
+      "ms-vscode.live-server"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "🚀 Start CARE",
+        "type": "shell",
+        "command": "./scripts/start.sh",
+        "problemMatcher": [],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      },
+      {
+        "label": "🔧 Configure Sensor",
+        "type": "shell",
+        "command": "./scripts/configure_sensor.sh",
+        "problemMatcher": []
+      },
+      {
+        "label": "🤖 Build ROS2",
+        "type": "shell",
+        "command": "./scripts/ros2_build.sh",
+        "problemMatcher": []
+      },
+      {
+        "label": "🧪 Test ROS2",
+        "type": "shell",
+        "command": "./scripts/ros2_test.sh",
+        "problemMatcher": []
+      },
+      {
+        "label": "📦 Install Node.js deps",
+        "type": "shell",
+        "command": "cd services/nodejs && npm install",
+        "problemMatcher": []
+      },
+      {
+        "label": "🔍 Lint Node.js",
+        "type": "shell",
+        "command": "cd services/nodejs && npm run lint",
+        "problemMatcher": ["$eslint-stylish"]
+      },
+      {
+        "label": "🧪 Test Node.js",
+        "type": "shell",
+        "command": "cd services/nodejs && npm test",
+        "problemMatcher": []
+      },
+      {
+        "label": "🐳 Docker Compose Up",
+        "type": "shell",
+        "command": "cd infrastructure/docker && docker-compose up",
+        "problemMatcher": [],
+        "isBackground": true
+      },
+      {
+        "label": "🐳 Docker Compose Down",
+        "type": "shell",
+        "command": "cd infrastructure/docker && docker-compose down",
+        "problemMatcher": []
+      },
+      {
+        "label": "📡 Monitor CARE",
+        "type": "shell",
+        "command": "./scripts/monitor_care.sh",
+        "problemMatcher": [],
+        "isBackground": true
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "🐛 Debug Node.js (care-api)",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:🌐 Node.js Services}",
+        "program": "${workspaceFolder:🌐 Node.js Services}/care-api/index.js",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "🐛 Debug Node.js (care-dashboard)",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:🌐 Node.js Services}",
+        "program": "${workspaceFolder:🌐 Node.js Services}/care-dashboard/index.js",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "🐛 Debug Python Script",
+        "type": "python",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}"
+      }
+    ]
+  }
+}
+

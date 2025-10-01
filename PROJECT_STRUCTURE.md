@@ -17,6 +17,7 @@ CARE/
 ├── 📄 .gitignore               # Игнорируемые файлы
 ├── 📄 .clang-format            # Форматирование C/C++
 ├── 📄 .cspell.json             # Словарь для проверки орфографии
+├── 📄 CARE.code-workspace      # VS Code/Cursor workspace
 ├── 📄 CONTRIBUTING.md          # Руководство контрибьютора
 ├── 📄 LICENSE                  # MIT License
 ├── 📄 README.md                # Главный README
@@ -156,8 +157,25 @@ tests/
 | `.gitignore` | Исключения из Git |
 | `.clang-format` | Форматирование C/C++ (Google style) |
 | `.cspell.json` | Словарь для проверки орфографии |
+| `CARE.code-workspace` | VS Code/Cursor workspace с задачами и настройками |
 | `CONTRIBUTING.md` | Руководство по контрибьюции |
 | `SECURITY.md` | Политика безопасности |
+
+### 💼 CARE.code-workspace - Рабочее пространство
+
+Файл workspace содержит:
+- 📁 **Организованные папки** - 8 секций проекта (Root, Node.js, ROS2, ESP32, STM32, Scripts, Tests, Docs)
+- ⚙️ **Настройки** - форматирование, линтинг, пути ROS2
+- 🔧 **10 задач** - быстрый запуск скриптов (Start CARE, Build ROS2, Lint, Test, Docker)
+- 🐛 **Debug конфиги** - для Node.js и Python
+- 🔌 **Рекомендуемые расширения** - C++, Python, ESLint, Docker, PlatformIO
+
+**Использование:**
+```bash
+code CARE.code-workspace  # или откройте в Cursor
+```
+
+Затем: `Ctrl+Shift+P` → `Tasks: Run Task` → выберите задачу
 
 ## Принципы организации
 
