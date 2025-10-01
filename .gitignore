@@ -230,3 +230,8 @@ tmp/
 typings/
 yarn-debug.log*
 yarn-error.log*
+
+# Generated documentation
+docs/api/html/
+docs/api/jsdoc/
+Doxyfile.bak

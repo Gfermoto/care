@@ -1,0 +1,55 @@
+# Doxyfile для проекта C.A.R.E.
+
+PROJECT_NAME           = "C.A.R.E."
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "Collision Avoidance Radar Environment"
+OUTPUT_DIRECTORY       = docs/api
+CREATE_SUBDIRS         = YES
+
+# Входные файлы
+INPUT                  = services/ros2 \
+                         platforms/esp32 \
+                         platforms/stm32
+FILE_PATTERNS          = *.c *.cpp *.h *.hpp *.py
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */build/* \
+                         */install/* \
+                         */log/* \
+                         */node_modules/* \
+                         */.git/*
+
+# Генерация
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = html
+HTML_TIMESTAMP         = YES
+
+# Извлечение документации
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+
+# Комментарии
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MULTILINE_CPP_IS_BRIEF = YES
+
+# Предупреждения
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+
+# Диаграммы
+HAVE_DOT               = YES
+DOT_NUM_THREADS        = 4
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+CLASS_DIAGRAMS         = YES
+UML_LOOK               = YES
+
+# Дополнительно
+OPTIMIZE_OUTPUT_FOR_C  = YES
+TYPEDEF_HIDES_STRUCT   = YES
+

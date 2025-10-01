@@ -1,0 +1,26 @@
+{
+  "source": {
+    "include": [".", "care-api", "care-can-bridge", "care-dashboard", "mock-can", "stm32-config"],
+    "includePattern": ".+\\.js(doc|x)?$",
+    "excludePattern": "(node_modules|build|dist)"
+  },
+  "opts": {
+    "destination": "../../docs/api/jsdoc",
+    "recurse": true,
+    "readme": "README.md",
+    "template": "node_modules/docdash"
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": false,
+    "default": {
+      "outputSourceFiles": true
+    }
+  },
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  }
+}
+
