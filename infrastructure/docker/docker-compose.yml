@@ -4,8 +4,8 @@ services:
   # Node.js сервисы
   care-nodejs:
     build: 
-      context: ./nodejs
-      dockerfile: Dockerfile
+      context: ../../services/nodejs
+      dockerfile: ../../infrastructure/docker/nodejs/Dockerfile
     container_name: care-nodejs
     ports:
       - "3000:3000"  # Web Dashboard
@@ -33,8 +33,8 @@ services:
   # ROS 2 сервисы
   care-ros2:
     build:
-      context: ./ros2
-      dockerfile: Dockerfile
+      context: ../../services/ros2
+      dockerfile: ../../infrastructure/docker/ros2/Dockerfile
     container_name: care-ros2
     environment:
       - ROS_DOMAIN_ID=0
