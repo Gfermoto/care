@@ -3,12 +3,13 @@
   <name>care_can_bridge_node</name>
   <version>0.1.0</version>
   <description>C.A.R.E. CAN Bridge Node (transparent radar + emergency)</description>
-  <maintainer email="team@care">CARE Team</maintainer>
+  <maintainer email="care@project.com">CARE Team</maintainer>
   <license>MIT</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>care_common</exec_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 </package>

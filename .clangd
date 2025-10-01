@@ -1,0 +1,20 @@
+CompileFlags:
+  Add:
+    - -I/opt/ros/jazzy/include
+    - -I/opt/ros/jazzy/include/rclcpp
+    - -I/opt/ros/jazzy/include/std_msgs
+    - -I/opt/ros/jazzy/include/sensor_msgs
+    - -I/opt/ros/jazzy/include/geometry_msgs
+    - -I/opt/ros/jazzy/include/visualization_msgs
+    - -I/opt/ros/jazzy/include/tf2
+    - -I/opt/ros/jazzy/include/tf2_ros
+    - -I/home/gfer/CARE/services/ros2/install/include
+    - -I/home/gfer/CARE/platforms/stm32/include
+    - -I/home/gfer/CARE/platforms/stm32/src
+    - -I/home/gfer/CARE/platforms/esp32/include
+  CompilationDatabase: /home/gfer/CARE/services/ros2/build
+
+Diagnostics:
+  UnusedIncludes: Relaxed
+  MissingIncludes: Relaxed
+

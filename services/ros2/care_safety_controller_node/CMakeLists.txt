@@ -13,8 +13,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(care_common REQUIRED)
 
 add_executable(care_safety_controller_node src/care_safety_controller_node.cpp)
-ament_target_dependencies(care_safety_controller_node 
-  rclcpp 
+ament_target_dependencies(care_safety_controller_node
+  rclcpp
   std_msgs
   geometry_msgs
   care_common
@@ -24,11 +24,12 @@ install(TARGETS
   care_safety_controller_node
   DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY
-  launch
-  config
-  DESTINATION share/${PROJECT_NAME}/
-)
+# Commented out - directories do not exist yet
+# install(DIRECTORY
+#   launch
+#   config
+#   DESTINATION share/${PROJECT_NAME}/
+# )
 
 install(PROGRAMS
   scripts/safety_node.py

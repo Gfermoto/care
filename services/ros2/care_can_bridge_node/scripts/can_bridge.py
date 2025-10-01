@@ -1,62 +1,109 @@
 #!/usr/bin/env python3
+"""
+CAN Bridge Node for C.A.R.E. System.
+
+Bridges between CAN bus and ROS2, converting CAN messages to ROS2 topics
+and vice versa. Supports both mock mode for testing and real CAN interface.
+"""
+import threading
+
+from care_common.msg import RadarTarget as MsgRadarTarget
+from care_common.msg import RadarTargets as MsgRadarTargets
+from care_common.msg import SystemStatus as MsgSystemStatus
+
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
-import threading
+
+from std_msgs.msg import Header, String
 
 try:
     import can  # python-can
 except Exception:
     can = None
 
-from care_common.msg import RadarTarget as MsgRadarTarget
-from care_common.msg import RadarTargets as MsgRadarTargets
-from care_common.msg import SystemStatus as MsgSystemStatus
-from std_msgs.msg import Header
 
 class CareCanBridge(Node):
+    """CAN Bridge Node for C.A.R.E. System."""
+
     def __init__(self):
+        """Initialize the CAN Bridge node."""
         super().__init__('care_can_bridge_node')
         self.declare_parameter('mode', 'real')  # mock | real
         self.declare_parameter('can_interface', 'can0')
-        self.mode = self.get_parameter('mode').get_parameter_value().string_value
-        self.can_interface = self.get_parameter('can_interface').get_parameter_value().string_value
-        
+        mode_param = self.get_parameter('mode')
+        self.mode = mode_param.get_parameter_value().string_value
+        interface_param = self.get_parameter('can_interface')
+        can_interface = interface_param.get_parameter_value().string_value
+        self.can_interface = can_interface
+
         # RAW publishers (сохранение обратной совместимости)
-        self.targets_pub = self.create_publisher(String, '/care/targets_raw', 10)
-        self.status_pub = self.create_publisher(String, '/care/system_status_raw', 10)
-        self.emergency_pub = self.create_publisher(String, '/care/emergency_raw', 10)
-        self.config_ack_pub = self.create_publisher(String, '/care/config_ack_raw', 10)
-        
+        self.targets_pub = self.create_publisher(
+            String, '/care/targets_raw', 10
+        )
+        self.status_pub = self.create_publisher(
+            String, '/care/system_status_raw', 10
+        )
+        self.emergency_pub = self.create_publisher(
+            String, '/care/emergency_raw', 10
+        )
+        self.config_ack_pub = self.create_publisher(
+            String, '/care/config_ack_raw', 10
+        )
+
         # Typed publishers
-        self.targets_typed_pub = self.create_publisher(MsgRadarTargets, '/care/targets', 10)
-        self.status_typed_pub = self.create_publisher(MsgSystemStatus, '/care/system_status', 10)
-        
+        targets_topic = '/care/targets'
+        self.targets_typed_pub = self.create_publisher(
+            MsgRadarTargets, targets_topic, 10
+        )
+        status_topic = '/care/system_status'
+        self.status_typed_pub = self.create_publisher(
+            MsgSystemStatus, status_topic, 10
+        )
+
         if self.mode == 'mock':
             self.get_logger().info('Running in MOCK mode')
             self.timer = self.create_timer(0.05, self.publish_mock)
         else:
-            self.get_logger().info(f'Running in REAL mode via socketcan on {self.can_interface}')
+            interface_msg = (
+                f'Running in REAL mode via socketcan on '
+                f'{self.can_interface}'
+            )
+            self.get_logger().info(interface_msg)
             if can is None:
-                self.get_logger().error('python-can не установлен. Установите пакет python-can.')
-                self.timer = self.create_timer(1.0, self.publish_placeholder)
+                error_msg = (
+                    'python-can не установлен. '
+                    'Установите пакет python-can.'
+                )
+                self.get_logger().error(error_msg)
+                self.timer = self.create_timer(
+                    1.0, self.publish_placeholder
+                )
             else:
                 self._can_bus = None
                 self._can_thread = None
                 self._can_stop = threading.Event()
                 self._start_can()
-    
+
     def _start_can(self):
+        """Start the CAN bus reader thread."""
         try:
-            self._can_bus = can.interface.Bus(channel=self.can_interface, bustype='socketcan')
-            self._can_thread = threading.Thread(target=self._can_loop, daemon=True)
+            self._can_bus = can.interface.Bus(
+                channel=self.can_interface, bustype='socketcan'
+            )
+            self._can_thread = threading.Thread(
+                target=self._can_loop, daemon=True
+            )
             self._can_thread.start()
             self.get_logger().info('CAN reader thread started')
         except Exception as e:
-            self.get_logger().error(f'Не удалось открыть {self.can_interface}: {e}')
+            error_msg = (
+                f'Не удалось открыть {self.can_interface}: {e}'
+            )
+            self.get_logger().error(error_msg)
             self.timer = self.create_timer(1.0, self.publish_placeholder)
-    
+
     def _can_loop(self):
+        """Run the main CAN reading loop in a separate thread."""
         while not self._can_stop.is_set():
             try:
                 msg = self._can_bus.recv(0.1)
@@ -70,17 +117,25 @@ class CareCanBridge(Node):
                     tid = can_id - 0x200
                     target_id = (data[0] << 8) | data[1]
                     x = (data[2] << 8) | data[3]
-                    if x & 0x8000: x -= 0x10000
+                    if x & 0x8000:
+                        x -= 0x10000
                     y = (data[4] << 8) | data[5]
-                    if y & 0x8000: y -= 0x10000
+                    if y & 0x8000:
+                        y -= 0x10000
                     dist = (data[6] << 8) | data[7]
                     # RAW
                     out_raw = String()
-                    out_raw.data = f'ID=0x{can_id:03X} T{tid} id={target_id} x={x} y={y} dist={dist}'
+                    raw_data = (
+                        f'ID=0x{can_id:03X} T{tid} id={target_id} '
+                        f'x={x} y={y} dist={dist}'
+                    )
+                    out_raw.data = raw_data
                     self.targets_pub.publish(out_raw)
-                    # TYPED: Буферизуем по устройству 1 (можно расширить)
+                    # TYPED: Буферизуем по устройству 1
                     targets_msg = MsgRadarTargets()
-                    targets_msg.header = Header(stamp=now, frame_id='care_radar')
+                    targets_msg.header = Header(
+                        stamp=now, frame_id='care_radar'
+                    )
                     targets_msg.device_id = 1
                     t = MsgRadarTarget()
                     t.id = target_id
@@ -112,13 +167,26 @@ class CareCanBridge(Node):
                     emerg = data[1]
                     # RAW
                     out_raw = String()
-                    out_raw.data = f'ID=0x300 active={active} emergency={emerg}'
+                    raw_status = (
+                        f'ID=0x300 active={active} emergency={emerg}'
+                    )
+                    out_raw.data = raw_status
                     self.status_pub.publish(out_raw)
                     # TYPED (минимальная сборка)
                     status = MsgSystemStatus()
-                    status.header = Header(stamp=now, frame_id='care_radar')
-                    status.overall_status = MsgSystemStatus.SYSTEM_EMERGENCY if emerg else MsgSystemStatus.SYSTEM_OK
-                    status.status_message = 'Emergency stop active' if emerg else 'System OK'
+                    status.header = Header(
+                        stamp=now, frame_id='care_radar'
+                    )
+                    if emerg:
+                        status.overall_status = (
+                            MsgSystemStatus.SYSTEM_EMERGENCY
+                        )
+                    else:
+                        status.overall_status = MsgSystemStatus.SYSTEM_OK
+                    if emerg:
+                        status.status_message = 'Emergency stop active'
+                    else:
+                        status.status_message = 'System OK'
                     status.active_devices = 1
                     status.offline_devices = 0
                     status.safety_system_active = True
@@ -144,12 +212,17 @@ class CareCanBridge(Node):
                     detail = data[1]
                     out = String()
                     who = 'CTRL' if can_id == 0x480 else 'RADAR'
-                    out.data = f'ID=0x{can_id:03X} {who} ACK code={code} detail={detail}'
+                    ack_msg = (
+                        f'ID=0x{can_id:03X} {who} ACK '
+                        f'code={code} detail={detail}'
+                    )
+                    out.data = ack_msg
                     self.config_ack_pub.publish(out)
             except Exception as e:
                 self.get_logger().warn(f'CAN read error: {e}')
-    
+
     def destroy_node(self):
+        """Clean up CAN resources before destroying node."""
         try:
             if hasattr(self, '_can_stop'):
                 self._can_stop.set()
@@ -162,11 +235,15 @@ class CareCanBridge(Node):
                     pass
         finally:
             super().destroy_node()
-    
+
     def publish_mock(self):
+        """Publish mock data for testing purposes."""
         # RAW
         msg_t = String()
-        msg_t.data = 'ID=0x200 T0 id=1 x=150 y=200 dist=1200; ID=0x201 T1 id=2 x=300 y=-100 dist=2500'
+        msg_t.data = (
+            'ID=0x200 T0 id=1 x=150 y=200 dist=1200; '
+            'ID=0x201 T1 id=2 x=300 y=-100 dist=2500'
+        )
         self.targets_pub.publish(msg_t)
         msg_s = String()
         msg_s.data = 'ID=0x300 active=2 emergency=0'
@@ -177,8 +254,15 @@ class CareCanBridge(Node):
         targets_msg.header = Header(stamp=now, frame_id='care_radar')
         targets_msg.device_id = 1
         t = MsgRadarTarget()
-        t.id = 1; t.device_id = 1; t.x = 150; t.y = 200; t.distance = 1200; t.valid = True
-        t.timestamp = now; t.last_seen = now; t.confidence = 1.0
+        t.id = 1
+        t.device_id = 1
+        t.x = 150
+        t.y = 200
+        t.distance = 1200
+        t.valid = True
+        t.timestamp = now
+        t.last_seen = now
+        t.confidence = 1.0
         targets_msg.targets = [t]
         targets_msg.target_count = 1
         self.targets_typed_pub.publish(targets_msg)
@@ -187,13 +271,16 @@ class CareCanBridge(Node):
         status.overall_status = MsgSystemStatus.SYSTEM_OK
         status.status_message = 'System OK'
         self.status_typed_pub.publish(status)
-    
+
     def publish_placeholder(self):
+        """Publish placeholder message when CAN is unavailable."""
         msg = String()
         msg.data = 'waiting for CAN interface (python-can not available)'
         self.status_pub.publish(msg)
 
+
 def main(args=None):
+    """Run the CAN Bridge node."""
     rclpy.init(args=args)
     node = CareCanBridge()
     try:
@@ -201,6 +288,7 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

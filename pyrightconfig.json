@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/schema/pyrightconfig.schema.json",
+  "include": ["services/ros2/**/*.py"],
+  "exclude": ["**/node_modules", "**/__pycache__", "**/build", "**/install"],
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "warning",
+  "reportMissingTypeStubs": "none",
+  "pythonVersion": "3.12",
+  "venvPath": "/usr",
+  "extraPaths": [
+    "/opt/ros/jazzy/lib/python3.12/site-packages",
+    "/home/gfer/CARE/services/ros2/install/lib/python3.12/site-packages",
+    "/home/gfer/CARE/services/ros2/install/lib/care_can_bridge_node",
+    "/home/gfer/CARE/services/ros2/install/lib/care_common"
+  ],
+  "typeCheckingMode": "basic"
+}

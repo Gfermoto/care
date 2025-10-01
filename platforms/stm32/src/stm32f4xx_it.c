@@ -2,9 +2,9 @@
 C.A.R.E. STM32F407 Interrupt Service Routines
 */
 
-#include "main.h"
 #include "stm32f4xx_it.h"
-
+#ifdef USE_HAL_DRIVER
+#include "main.h"
 // External variables
 extern UART_HandleTypeDef huart2;
 extern CAN_HandleTypeDef hcan1;
@@ -396,3 +396,5 @@ void HASH_RNG_IRQHandler(void) {
 void FPU_IRQHandler(void) {
     // FPU
 }
+
+#endif // USE_HAL_DRIVER

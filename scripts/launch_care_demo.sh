@@ -1,94 +1,78 @@
 #!/bin/bash
-
 # C.A.R.E. Demo Launch Script
-# Запускает Mock датчик → ROS2 → RViz2
+# Запускает полную демонстрацию с Mock данными и RViz2
 
 set -e
 
-echo "🚀 Запуск C.A.R.E. Demo с RViz2 визуализацией"
-echo "=============================================="
+echo "🚀 C.A.R.E. Demo Launch Script"
+echo "================================"
 
-# Проверка ROS2 окружения
-if [ -z "$ROS_DISTRO" ]; then
-    echo "📡 Загрузка ROS2 окружения..."
-    set +u
-    source /opt/ros/jazzy/setup.bash
-    set -u
-fi
-
-# Проверка сборки пакета
-if [ ! -f "/home/gfer/CARE/services/ros2/install/care_radar_publisher/lib/care_radar_publisher/care_radar_node" ]; then
-    echo "🔧 Сборка ROS2 пакета..."
-    cd /home/gfer/CARE/services/ros2
-    colcon build --packages-select care_radar_publisher
-fi
-
-# Загрузка workspace
-echo "📦 Загрузка C.A.R.E. workspace..."
-cd /home/gfer/CARE/services/ros2
+# Source ROS2
+cd /home/gfer/CARE
 set +u
-source install/setup.bash
+source /opt/ros/jazzy/setup.bash
+source services/ros2/install/setup.bash
 set -u
 
-echo ""
-echo "🎯 Запуск компонентов C.A.R.E.:"
-echo "  1. ROS2 нода с Mock данными радара"
-echo "  2. RViz2 с красивой конфигурацией"
-echo ""
+# Kill old processes
+echo "🧹 Cleaning old processes..."
+killall -9 rviz2 2>/dev/null || true
+pkill -f "can_bridge.py" 2>/dev/null || true
+pkill -f "care_demo_node" 2>/dev/null || true
+sleep 2
 
-# Функция для очистки процессов
-cleanup() {
-    echo ""
-    echo "🛑 Остановка C.A.R.E. Demo..."
-    kill $ROS_PID 2>/dev/null || true
-    kill $RVIZ_PID 2>/dev/null || true
-    exit 0
-}
+# Start CAN Bridge (Mock mode)
+echo "📡 Starting CAN Bridge (Mock mode)..."
+ros2 run care_can_bridge_node can_bridge.py --ros-args -p mode:=mock > /tmp/can_bridge.log 2>&1 &
+CAN_PID=$!
+sleep 2
 
-# Обработка сигналов
-trap cleanup SIGINT SIGTERM
-
-# Запуск ROS2 ноды в фоне
-echo "🎯 Запуск ROS2 ноды care_radar_publisher..."
-ros2 run care_radar_publisher care_radar_node &
-ROS_PID=$!
-
-# Ждем запуска ноды
+# Start Demo Node (C++)
+echo "🎯 Starting C.A.R.E. Demo Node..."
+ros2 run care_demo_node care_demo_node > /tmp/demo_node.log 2>&1 &
+DEMO_PID=$!
 sleep 3
 
-# Проверяем топики
-echo "📊 Проверка топиков:"
-timeout 5 ros2 topic list | grep care || echo "⚠️  Топики C.A.R.E. пока не активны"
-
-# Запуск RViz2 с конфигурацией
-echo "🎨 Запуск RViz2 с конфигурацией C.A.R.E...."
-sleep 1
-
-# Путь к конфигурации
-RVIZ_CONFIG="/home/gfer/CARE/services/ros2/care_radar_publisher/config/care_radar.rviz"
-
-if [ -f "$RVIZ_CONFIG" ]; then
-    rviz2 -d "$RVIZ_CONFIG" &
-    RVIZ_PID=$!
-else
-    echo "⚠️  Конфигурация RViz2 не найдена, запуск с настройками по умолчанию..."
-    rviz2 &
-    RVIZ_PID=$!
+# Check if nodes are running
+if ! ps -p $CAN_PID > /dev/null; then
+    echo "❌ CAN Bridge failed to start"
+    exit 1
 fi
 
+if ! ps -p $DEMO_PID > /dev/null; then
+    echo "❌ Demo Node failed to start"
+    exit 1
+fi
+
+# Show status
 echo ""
-echo "✅ C.A.R.E. Demo запущен!"
-echo "📡 ROS2 нода: PID $ROS_PID"
-echo "🎨 RViz2: PID $RVIZ_PID"
-echo ""
-echo "🎯 Топики для мониторинга:"
-echo "  • ros2 topic echo /care/radar_targets"
-echo "  • ros2 topic echo /care/safety_zone"  
-echo "  • ros2 topic echo /care/status"
-echo ""
-echo "🎮 Для остановки нажмите Ctrl+C"
+echo "✅ Nodes started successfully!"
+echo "   CAN Bridge PID: $CAN_PID"
+echo "   Demo Node PID: $DEMO_PID"
 echo ""
 
-# Ждем завершения процессов
-wait $ROS_PID $RVIZ_PID
+# Show topics
+echo "📊 Active topics:"
+ros2 topic list | grep care
 
+echo ""
+echo "🎨 Starting RViz2..."
+rviz2 -d services/ros2/care_demo_node/config/care_demo.rviz > /tmp/rviz.log 2>&1 &
+RVIZ_PID=$!
+
+echo ""
+echo "✅ C.A.R.E. Demo started successfully!"
+echo ""
+echo "📊 You should see in RViz2:"
+echo "   🎯 Animated targets (cascading appearance every 1 sec)"
+echo "   🔵 Horizontal FOV (cyan, ±30°)"
+echo "   🟢 Vertical FOV (green, ±17.5°)"
+echo "   🔴 Safety zone (red cylinder, 1.5m radius)"
+echo ""
+echo "📋 Process IDs:"
+echo "   CAN Bridge: $CAN_PID"
+echo "   Demo Node: $DEMO_PID"
+echo "   RViz2: $RVIZ_PID"
+echo ""
+echo "🛑 To stop: killall -9 rviz2 && pkill -f 'can_bridge|care_demo'"
+echo ""

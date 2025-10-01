@@ -17,11 +17,11 @@ find_package(tf2_ros REQUIRED)
 find_package(care_common REQUIRED)
 
 add_executable(care_demo_node src/care_demo_node.cpp)
-ament_target_dependencies(care_demo_node 
-  rclcpp 
-  std_msgs 
-  sensor_msgs 
-  geometry_msgs 
+ament_target_dependencies(care_demo_node
+  rclcpp
+  std_msgs
+  sensor_msgs
+  geometry_msgs
   visualization_msgs
   tf2
   tf2_ros

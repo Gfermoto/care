@@ -73,24 +73,24 @@ class CareAPI {
         this.port = port;
         this.app = express();
 
-        /** 
-         * @private 
+        /**
+         * @private
          * @type {Array<Object>}
-         * @description Массив данных радара (макс 1000 записей) 
+         * @description Массив данных радара (макс 1000 записей)
          */
         this.radarData = [];
-        
-        /** 
-         * @private 
+
+        /**
+         * @private
          * @type {Array<Object>}
-         * @description Массив логов безопасности (макс 500 записей) 
+         * @description Массив логов безопасности (макс 500 записей)
          */
         this.safetyLogs = [];
-        
-        /** 
-         * @private 
+
+        /**
+         * @private
          * @type {Array<Object>}
-         * @description Массив системных логов 
+         * @description Массив системных логов
          */
         this.systemLogs = [];
 

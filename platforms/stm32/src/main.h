@@ -9,18 +9,19 @@ C.A.R.E. STM32F407 Main Header File
 extern "C" {
 #endif
 
-// STM32 HAL includes
+// STM32 HAL includes - только при компиляции для STM32
+#ifdef USE_HAL_DRIVER
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_conf.h"
+#endif
 
-// Standard C includes
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+// Standard C includes (only those directly used in header)
 #include <math.h>
 
 // Project includes
+#ifdef USE_HAL_DRIVER
 #include "care_radar.h"
+#endif
 
 // Function prototypes
 void Error_Handler(void);

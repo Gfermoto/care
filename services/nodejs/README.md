@@ -4,7 +4,7 @@ Node.js компоненты для системы C.A.R.E. (Collaborative Aware
 
 ## 📁 Структура
 
-```
+```text
 nodejs/
 ├── care-can-bridge/     # CAN ↔ ROS 2 мост
 ├── care-dashboard/      # Веб-дашборд
@@ -47,12 +47,14 @@ npm run api
 ### 1. **CAN Bridge** (`care-can-bridge/`)
 
 **Функции:**
+
 - Мост между CAN и ROS 2
 - Обработка радарных данных
 - Управление экстренной остановкой
 - Статистика производительности
 
 **CAN ID:**
+
 - `0x100` - Emergency Stop
 - `0x200-0x202` - Radar Targets (0-2)
 - `0x300` - System Status
@@ -61,17 +63,19 @@ npm run api
 ### 2. **Web Dashboard** (`care-dashboard/`)
 
 **Функции:**
+
 - Реальное время мониторинг
 - Визуализация радарных целей
 - Статус безопасности
 - WebSocket соединения
 
 **Порт:** 3000
-**URL:** http://localhost:3000
+**URL:** <http://localhost:3000>
 
 ### 3. **API Server** (`care-api/`)
 
 **Функции:**
+
 - REST API для конфигурации
 - Экспорт данных (JSON/CSV)
 - Статистика системы
@@ -79,6 +83,7 @@ npm run api
 
 **Порт:** 3001
 **Endpoints:**
+
 - `GET /health` - Health check
 - `GET /api/radar/data` - Радарные данные
 - `POST /api/radar/data` - Запись данных
@@ -92,7 +97,7 @@ npm run api
 
 ## 📊 Архитектура
 
-```
+```text
 ESP32/STM32 → CAN → Node.js CAN Bridge → ROS 2
                     ↓
               Web Dashboard (Real-time)
@@ -102,29 +107,33 @@ ESP32/STM32 → CAN → Node.js CAN Bridge → ROS 2
 
 ## 🛠️ Зависимости
 
-### Основные:
+### Основные
+
 - **socketcan** - CAN интерфейс
 - **rclnodejs** - ROS 2 интеграция
 - **express** - Web сервер
 - **ws** - WebSocket
 - **csv-writer** - Экспорт данных
 
-### Разработка:
+### Разработка
+
 - **nodemon** - Автоперезагрузка
 - **jest** - Тестирование
 - **supertest** - API тестирование
 
 ## 🔌 CAN Протокол
 
-### Формат сообщений:
+### Формат сообщений
 
 #### Emergency Stop (ID: 0x100)
-```
+
+```text
 Data[0] = 0x01 (Active) / 0x00 (Inactive)
 ```
 
 #### Radar Target (ID: 0x200-0x202)
-```
+
+```text
 Data[0-1] = X coordinate (mm)
 Data[2-3] = Y coordinate (mm)
 Data[4-5] = Distance (mm)
@@ -132,7 +141,8 @@ Data[6-7] = Speed (mm/s)
 ```
 
 #### System Status (ID: 0x300)
-```
+
+```text
 Data[0] = System status
 Data[1] = Active targets count
 Data[2-3] = Safety distance (mm)
@@ -140,13 +150,15 @@ Data[2-3] = Safety distance (mm)
 
 ## 🌐 Web Dashboard
 
-### Функции:
+### Функции
+
 - **Real-time radar display** - Визуализация целей
 - **Safety status** - Статус безопасности
 - **System statistics** - Статистика системы
 - **Emergency alerts** - Аварийные уведомления
 
-### Технологии:
+### Технологии
+
 - **HTML5 Canvas** - Радарная визуализация
 - **WebSocket** - Real-time обновления
 - **CSS3 Animations** - Анимации
@@ -154,7 +166,8 @@ Data[2-3] = Safety distance (mm)
 
 ## 📈 API Endpoints
 
-### Радарные данные:
+### Радарные данные
+
 ```bash
 # Получить данные
 GET /api/radar/data?limit=100&offset=0
@@ -171,7 +184,8 @@ POST /api/radar/data
 }
 ```
 
-### Конфигурация безопасности:
+### Конфигурация безопасности
+
 ```bash
 # Получить конфигурацию
 GET /api/config/safety
@@ -186,7 +200,8 @@ POST /api/config/safety
 }
 ```
 
-### Экспорт данных:
+### Экспорт данных
+
 ```bash
 # JSON экспорт
 GET /api/export/radar?format=json&date=2024-01-15
@@ -197,7 +212,8 @@ GET /api/export/radar?format=csv&date=2024-01-15
 
 ## 🔧 Конфигурация
 
-### Environment Variables:
+### Environment Variables
+
 ```bash
 # Порты сервисов
 PORT=3000                    # Dashboard port
@@ -213,7 +229,8 @@ ROS_DOMAIN_ID=0             # ROS 2 domain ID
 
 ## 🚀 Production Deployment
 
-### PM2 (Process Manager):
+### PM2 (Process Manager)
+
 ```bash
 # Установка PM2
 npm install -g pm2
@@ -225,7 +242,8 @@ pm2 start index.js --name "care-nodejs"
 pm2 monit
 ```
 
-### Docker:
+### Docker
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -238,13 +256,15 @@ CMD ["node", "index.js"]
 
 ## 📝 Логирование
 
-### Уровни логов:
+### Уровни логов
+
 - **INFO** - Общая информация
 - **WARN** - Предупреждения
 - **ERROR** - Ошибки
 - **DEBUG** - Отладочная информация
 
-### Файлы логов:
+### Файлы логов
+
 - `logs/care-bridge.log` - CAN Bridge логи
 - `logs/care-dashboard.log` - Dashboard логи
 - `logs/care-api.log` - API логи
@@ -264,12 +284,14 @@ npm run test:bridge
 
 ## 🔍 Мониторинг
 
-### Health Checks:
-- **Dashboard**: http://localhost:3000/health
-- **API**: http://localhost:3001/health
+### Health Checks
+
+- **Dashboard**: <http://localhost:3000/health>
+- **API**: <http://localhost:3001/health>
 - **CAN Bridge**: Статистика в консоли
 
-### Метрики:
+### Метрики
+
 - Количество CAN сообщений
 - Количество ROS 2 сообщений
 - Время отклика
@@ -277,7 +299,8 @@ npm run test:bridge
 
 ## 🛡️ Безопасность
 
-### Защита:
+### Защита
+
 - **Helmet** - HTTP заголовки безопасности
 - **CORS** - Cross-Origin Resource Sharing
 - **Rate Limiting** - Ограничение запросов

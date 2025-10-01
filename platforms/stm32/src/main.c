@@ -4,18 +4,24 @@ STM32F407 Implementation for LD2450 Radar
 
 Hardware Setup:
 - LD2450 Radar: UART2 (PA2/PA3)
-- CAN Transceiver: CAN1 (PB0/PB1) 
+- CAN Transceiver: CAN1 (PB0/PB1)
 - MCP2515 (if needed): SPI1 (PA4/PA5/PA6/PA7)
 - Status LED: PC13
 - Error LED: PC14
 */
 
 #include "main.h"
+#ifdef USE_HAL_DRIVER
 #include "care_radar.h"
 // #include "LD2450.h"  // Пока отключено - библиотека не совместима с STM32
+#endif
+// stdio.h and string.h are used only when building with HAL
+#ifdef USE_HAL_DRIVER
 #include "string.h"
 #include "stdio.h"
+#endif
 
+#ifdef USE_HAL_DRIVER
 // Global handles
 UART_HandleTypeDef huart2;
 CAN_HandleTypeDef hcan1;
@@ -37,78 +43,78 @@ static uint32_t safety_checks = 0;
 int main(void) {
     // Initialize HAL
     HAL_Init();
-    
+
     // Configure system clock
     SystemClock_Config();
-    
+
     // Initialize GPIO
     MX_GPIO_Init();
-    
+
     // Initialize peripherals
     MX_UART2_Init();
     MX_CAN1_Init();
     MX_SPI1_Init();
-    
+
     // Initialize components
     setupRadar();
     setupCAN();
-    
+
     // Load default configuration
     loadConfig();
-    
+
     // Initialize targets
     for (int i = 0; i < 3; i++) {
         targets[i].id = i;
         targets[i].valid = false;
         targets[i].timestamp = 0;
     }
-    
+
     // Initialize safety zone
     safety_zone.min_distance = config.safety_distance;
     safety_zone.max_angle = config.safety_angle;
     safety_zone.emergency_stop = false;
     safety_zone.active_targets = 0;
     safety_zone.last_trigger = 0;
-    
+
     printf("C.A.R.E. STM32F407 Radar Module Starting...\r\n");
     printf("Safety Distance: %d mm\r\n", config.safety_distance);
     printf("Safety Angle: %d degrees\r\n", config.safety_angle);
     printf("CAN Enabled: %s\r\n", config.can_enabled ? "Yes" : "No");
     printf("C.A.R.E. STM32F407 Ready!\r\n");
-    
+
     // Main loop
     uint32_t last_radar_update = 0;
     uint32_t last_safety_check = 0;
     uint32_t last_can_send = 0;
     uint32_t last_stats_print = 0;
-    
+
     while (1) {
         uint32_t current_time = HAL_GetTick();
-        
+
         // Radar data handling (20 Hz)
         if (current_time - last_radar_update >= 50) {
             handleRadarData();
             last_radar_update = current_time;
         }
-        
+
         // Safety zone checking (50 Hz)
         if (current_time - last_safety_check >= 20) {
             checkSafetyZone();
             last_safety_check = current_time;
         }
-        
+
         // CAN data sending (10 Hz)
         if (current_time - last_can_send >= 100) {
             sendCANData();
             last_can_send = current_time;
         }
-        
+
         // Performance stats (1 Hz)
         if (current_time - last_stats_print >= 1000) {
             printPerformanceStats();
             last_stats_print = current_time;
         }
-        
+
         // Small delay to prevent CPU overload
         HAL_Delay(1);
     }
@@ -117,11 +123,11 @@ int main(void) {
 void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-    
+
     // Configure the main internal regulator output voltage
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-    
+
     // Initializes the RCC Oscillators according to the specified parameters
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -131,19 +137,19 @@ void SystemClock_Config(void) {
     RCC_OscInitStruct.PLL.PLLN = 336;
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = 7;
-    
+
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         Error_Handler();
     }
-    
+
     // Initializes the CPU, AHB and APB buses clocks
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | 
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
                                   RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-    
+
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
         Error_Handler();
     }
@@ -151,12 +157,12 @@ void SystemClock_Config(void) {
 
 void MX_GPIO_Init(void) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    
+
     // Enable GPIO clocks
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    
+
     // Configure UART2 pins (PA2, PA3)
     GPIO_InitStruct.Pin = RADAR_UART_TX_PIN | RADAR_UART_RX_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -164,7 +170,7 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
     HAL_GPIO_Init(RADAR_UART_PORT, &GPIO_InitStruct);
-    
+
     // Configure CAN pins (PB0, PB1)
     GPIO_InitStruct.Pin = CAN_TX_PIN | CAN_RX_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -172,7 +178,7 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF9_CAN1;
     HAL_GPIO_Init(CAN_PORT, &GPIO_InitStruct);
-    
+
     // Configure SPI pins (PA4, PA5, PA6, PA7)
     GPIO_InitStruct.Pin = GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -180,7 +186,7 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
+
     // Configure MCP2515 CS pin (PA4)
     GPIO_InitStruct.Pin = MCP2515_CS_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -188,23 +194,23 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     HAL_GPIO_Init(MCP2515_CS_PORT, &GPIO_InitStruct);
     HAL_GPIO_WritePin(MCP2515_CS_PORT, MCP2515_CS_PIN, GPIO_PIN_SET);
-    
+
     // Configure MCP2515 INT pin (PA5)
     GPIO_InitStruct.Pin = MCP2515_INT_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(MCP2515_INT_PORT, &GPIO_InitStruct);
-    
+
     // Configure LED pins
     GPIO_InitStruct.Pin = STATUS_LED_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(STATUS_LED_PORT, &GPIO_InitStruct);
-    
+
     GPIO_InitStruct.Pin = ERROR_LED_PIN;
     HAL_GPIO_Init(ERROR_LED_PORT, &GPIO_InitStruct);
-    
+
     // Initialize LEDs
     HAL_GPIO_WritePin(STATUS_LED_PORT, STATUS_LED_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(ERROR_LED_PORT, ERROR_LED_PIN, GPIO_PIN_RESET);
@@ -219,7 +225,7 @@ void MX_UART2_Init(void) {
     huart2.Init.Mode = UART_MODE_TX_RX;
     huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    
+
     if (HAL_UART_Init(&huart2) != HAL_OK) {
         Error_Handler();
     }
@@ -238,11 +244,11 @@ void MX_CAN1_Init(void) {
     hcan1.Init.AutoRetransmission = DISABLE;
     hcan1.Init.ReceiveFifoLocked = DISABLE;
     hcan1.Init.TransmitFifoPriority = DISABLE;
-    
+
     if (HAL_CAN_Init(&hcan1) != HAL_OK) {
         Error_Handler();
     }
-    
+
     // Configure CAN filter
     CAN_FilterTypeDef sFilterConfig;
     sFilterConfig.FilterBank = 0;
@@ -255,11 +261,11 @@ void MX_CAN1_Init(void) {
     sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
     sFilterConfig.FilterActivation = ENABLE;
     sFilterConfig.SlaveStartFilterBank = 14;
-    
+
     if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK) {
         Error_Handler();
     }
-    
+
     if (HAL_CAN_Start(&hcan1) != HAL_OK) {
         Error_Handler();
     }
@@ -278,7 +284,7 @@ void MX_SPI1_Init(void) {
     hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
     hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
     hspi1.Init.CRCPolynomial = 10;
-    
+
     if (HAL_SPI_Init(&hspi1) != HAL_OK) {
         Error_Handler();
     }
@@ -296,7 +302,7 @@ void setupCAN(void) {
 
 void handleRadarData(void) {
     radar_reads++;
-    
+
     // Get radar targets - пока отключено
     // for (int i = 0; i < radar.getSensorSupportedTargetCount(); i++) {
     //     if (i < 3) { // Limit to 3 targets
@@ -310,7 +316,7 @@ void handleRadarData(void) {
     //         targets[i].timestamp = HAL_GetTick();
     //     }
     // }
-    
+
     // Заглушка для тестирования
     static uint32_t test_counter = 0;
     test_counter++;
@@ -321,10 +327,10 @@ void handleRadarData(void) {
 
 void checkSafetyZone(void) {
     safety_checks++;
-    
+
     safety_zone.emergency_stop = false;
     safety_zone.active_targets = 0;
-    
+
     for (int i = 0; i < 3; i++) {
         if (targets[i].valid) {
             if (targets[i].distance < safety_zone.min_distance) {
@@ -344,20 +350,20 @@ void checkSafetyZone(void) {
 
 void sendCANEmergencyStop(void) {
     if (!config.can_enabled) return;
-    
+
     CAN_TxHeaderTypeDef TxHeader;
     uint8_t TxData[1];
     uint32_t TxMailbox;
-    
+
     TxHeader.StdId = CAN_EMERGENCY_STOP_ID;
     TxHeader.ExtId = 0x01;
     TxHeader.RTR = CAN_RTR_DATA;
     TxHeader.IDE = CAN_ID_STD;
     TxHeader.DLC = CAN_EMERGENCY_STOP_DLC;
     TxHeader.TransmitGlobalTime = DISABLE;
-    
+
     TxData[0] = 0x01; // Emergency stop command
-    
+
     if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) == HAL_OK) {
         printf("CAN Emergency Stop sent\r\n");
     } else {
@@ -367,9 +373,9 @@ void sendCANEmergencyStop(void) {
 
 void sendCANData(void) {
     if (!config.can_enabled) return;
-    
+
     can_sends++;
-    
+
     if (safety_zone.emergency_stop) {
         sendCANEmergencyStop();
     } else {
@@ -379,14 +385,14 @@ void sendCANData(void) {
                 CAN_TxHeaderTypeDef TxHeader;
                 uint8_t TxData[8];
                 uint32_t TxMailbox;
-                
+
                 TxHeader.StdId = CAN_TARGET_DATA_BASE_ID + i;
                 TxHeader.ExtId = 0x01;
                 TxHeader.RTR = CAN_RTR_DATA;
                 TxHeader.IDE = CAN_ID_STD;
                 TxHeader.DLC = CAN_TARGET_DATA_DLC;
                 TxHeader.TransmitGlobalTime = DISABLE;
-                
+
                 // Pack target data into CAN frame
                 TxData[0] = (targets[i].x >> 8) & 0xFF;
                 TxData[1] = targets[i].x & 0xFF;
@@ -396,7 +402,7 @@ void sendCANData(void) {
                 TxData[5] = targets[i].distance & 0xFF;
                 TxData[6] = (targets[i].speed >> 8) & 0xFF;
                 TxData[7] = targets[i].speed & 0xFF;
-                
+
                 if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
                     printf("Failed to send CAN target data for ID %d\r\n", i);
                 }
@@ -414,7 +420,7 @@ void loadConfig(void) {
     config.can_enabled = true;
     config.web_enabled = false;
     config.update_frequency = 20; // Hz
-    
+
     printf("Configuration loaded\r\n");
 }
 
@@ -438,10 +444,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     CAN_RxHeaderTypeDef RxHeader;
     uint8_t RxData[8];
-    
+
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK) {
         // Handle received CAN message
-        printf("CAN message received: ID=0x%03X, DLC=%d\r\n", RxHeader.StdId, RxHeader.DLC);
+        printf("CAN message received: ID=0x%03lX, DLC=%ld\r\n", RxHeader.StdId, RxHeader.DLC);
     }
 }
 
@@ -500,3 +506,5 @@ void assert_failed(uint8_t *file, uint32_t line) {
     Error_Handler();
 }
 #endif
+
+#endif // USE_HAL_DRIVER

@@ -9,8 +9,7 @@ C.A.R.E. STM32F407 Interrupt Service Routines Header
 extern "C" {
 #endif
 
-// STM32 HAL includes
-#include "main.h"
+// No project includes needed here; this header only declares ISR prototypes
 
 // Function prototypes
 void NMI_Handler(void);

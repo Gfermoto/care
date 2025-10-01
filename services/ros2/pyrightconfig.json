@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/schema/pyrightconfig.schema.json",
+  "include": ["."],
+  "reportMissingImports": "error",
+  "reportMissingModuleSource": "warning",
+  "venvPath": "/usr",
+  "extraPaths": [
+    "/home/gfer/CARE/services/ros2/install/lib/python3.12/site-packages",
+    "/opt/ros/jazzy/lib/python3.12/site-packages",
+    "/home/gfer/CARE/services/ros2/install/lib/python3.10/site-packages",
+    "/opt/ros/jazzy/lib/python3.10/site-packages"
+  ]
+}
+
+

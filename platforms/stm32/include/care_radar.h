@@ -5,7 +5,8 @@
 #include <stdbool.h>
 #include <math.h>
 
-// STM32 HAL includes
+// STM32 HAL includes - только при компиляции для STM32
+#ifdef USE_HAL_DRIVER
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_can.h"
@@ -13,6 +14,13 @@
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_rcc.h"
 #include "stm32f4xx_hal_tim.h"
+#else
+// Forward declarations для линтера и IDE
+typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
+typedef struct __CAN_HandleTypeDef CAN_HandleTypeDef;
+typedef struct __SPI_HandleTypeDef SPI_HandleTypeDef;
+typedef struct GPIO_TypeDef GPIO_TypeDef;
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
