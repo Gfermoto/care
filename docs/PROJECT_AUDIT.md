@@ -10,7 +10,9 @@
 
 ```
 CARE/
-├── 📚 docs/              # Документация (6 основных + 31 legacy в md/)
+├── 📚 docs/              # Документация (8 основных + 31 legacy в md/)
+│   ├── PROJECT_STRUCTURE.md # Структура проекта
+│   └── PROJECT_AUDIT.md     # Этот аудит
 ├── 🏗️ infrastructure/    # Docker + конфигурация (централизовано)
 │   ├── configs/          # requirements.txt
 │   └── docker/           # Единый compose + Dockerfile'ы (nodejs, ros2)
@@ -36,7 +38,11 @@ CARE/
 ├── 📄 .gitignore         # 327 строк правил
 ├── 📄 .clang-format      # C++ форматирование (Google style)
 ├── 📄 .cspell.json       # Словарь проверки орфографии
-└── 📄 PROJECT_STRUCTURE.md # Описание структуры
+├── 📄 CARE.code-workspace# VS Code/Cursor workspace
+├── 📄 CONTRIBUTING.md    # Руководство контрибьютора
+├── 📄 LICENSE            # MIT License
+├── 📄 README.md          # Главный README
+└── 📄 SECURITY.md        # Политика безопасности
 ```
 
 ---
@@ -54,13 +60,14 @@ CARE/
 1. ✅ Удалён дубликат Dockerfile
 2. ✅ Обновлены все ссылки на `scripts/` в:
    - README.md
-   - PROJECT_STRUCTURE.md
+   - docs/PROJECT_STRUCTURE.md
    - docs/CONTROLLER_RADAR_SETUP.md
    - docs/ARCHITECTURE_TARGET.md
    - docs/md/*.md (5 файлов)
    - .github/workflows/ci.yml
 3. ✅ Исправлено примечание в README
 4. ✅ Структура визуализации обновлена
+5. ✅ Документы PROJECT_STRUCTURE.md и PROJECT_AUDIT.md перенесены в docs/
 
 ---
 
@@ -74,7 +81,7 @@ CARE/
 
 ### Документация: ⭐⭐⭐⭐⭐ (5/5)
 - ✅ README актуальный и информативный
-- ✅ PROJECT_STRUCTURE.md описывает всю структуру
+- ✅ docs/PROJECT_STRUCTURE.md описывает всю структуру
 - ✅ CONTRIBUTING.md с гайдами
 - ✅ SECURITY.md для уязвимостей
 - ✅ Документация CAN протокола

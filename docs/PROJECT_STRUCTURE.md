@@ -21,8 +21,7 @@ CARE/
 ├── 📄 CONTRIBUTING.md          # Руководство контрибьютора
 ├── 📄 LICENSE                  # MIT License
 ├── 📄 README.md                # Главный README
-├── 📄 SECURITY.md              # Политика безопасности
-└── 📄 PROJECT_STRUCTURE.md     # Этот файл
+└── 📄 SECURITY.md              # Политика безопасности
 ```
 
 ## Детальная структура
@@ -40,7 +39,9 @@ docs/
 ├── CAN_ID_REFERENCE.md         # CAN ID справочник
 ├── CAN_MESSAGES.md             # CAN протокол
 ├── CONTROLLER_RADAR_SETUP.md   # Настройка контроллера/радара
-└── DEPLOYMENT.md               # Развёртывание
+├── DEPLOYMENT.md               # Развёртывание
+├── PROJECT_STRUCTURE.md        # Структура проекта (этот документ)
+└── PROJECT_AUDIT.md            # Аудит качества проекта
 ```
 
 ### 🏗️ infrastructure/ - Инфраструктура
