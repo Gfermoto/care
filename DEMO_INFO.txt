@@ -3,7 +3,8 @@
 ╚════════════════════════════════════════════════════════════════╝
 
 🚀 ЗАПУСК ДЕМО:
-   ./scripts/launch_care_demo.sh
+   ROS2:  ./scripts/launch_care_demo.sh
+   Node.js: ./scripts/launch_nodejs_demo.sh
 
 🔨 КОМПИЛЯЦИЯ:
    ESP32:  cd platforms/esp32 && pio run
@@ -11,15 +12,16 @@
    ROS2:   cd services/ros2 && colcon build --merge-install
 
 📊 ПРОВЕРКА:
-   ros2 node list
-   ros2 topic list | grep care
-   ros2 topic hz /care/radar_targets
+   ROS2:  ros2 node list && ros2 topic list | grep care
+   Node.js: curl http://localhost:3000/health && curl http://localhost:3001/health
 
 🛑 ОСТАНОВКА:
-   killall -9 rviz2 && pkill -f "can_bridge|care_demo"
+   ROS2:  killall -9 rviz2 && pkill -f "can_bridge|care_demo"
+   Node.js: pkill -f "node.*integrated-demo"
 
 📚 ДОКУМЕНТАЦИЯ:
-   docs/md/DEMO_LAUNCH.md      - Подробная инструкция
+   docs/md/DEMO_LAUNCH.md      - ROS2 Demo инструкция
+   docs/md/NODEJS_DEMO.md      - Node.js Demo инструкция
    docs/md/SESSION_SUMMARY.md  - Итоговый отчёт
    QUICKSTART.md               - Краткая памятка
 

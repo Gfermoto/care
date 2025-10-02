@@ -204,6 +204,16 @@ class CareDashboard {
         this.broadcastUpdate('radar', this.dashboardData.radar);
     }
 
+    updateRadarDisplay(radarData) {
+        this.dashboardData.radar = {
+            ...this.dashboardData.radar,
+            ...radarData,
+            lastUpdate: moment().toISOString()
+        };
+
+        this.broadcastUpdate('radar', this.dashboardData.radar);
+    }
+
     updateSafetyStatus(safety) {
         this.dashboardData.safety = {
             ...this.dashboardData.safety,

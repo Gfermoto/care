@@ -157,12 +157,25 @@ class CareAPI {
         // Logging
         this.app.use(morgan('combined'));
 
+        // Static files
+        this.app.use(express.static(path.join(__dirname, 'public')));
+
         // JSON parsing
         this.app.use(express.json({ limit: '10mb' }));
         this.app.use(express.urlencoded({ extended: true }));
     }
 
-    setupRoutes() {
+        setupRoutes() {
+            // Main page
+            this.app.get('/', (req, res) => {
+                res.sendFile(path.join(__dirname, 'public', 'index.html'));
+            });
+
+            // Admin panel
+            this.app.get('/admin', (req, res) => {
+                res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+            });
+
         // Health check
         this.app.get('/health', (req, res) => {
             res.json({
@@ -323,6 +336,72 @@ class CareAPI {
                 res.status(500).json({
                     success: false,
                     message: 'Failed to update safety configuration',
+                    error: error.message
+                });
+            }
+        });
+
+        // Radar configuration endpoints
+        this.app.get('/api/config/radar', (req, res) => {
+            res.json({
+                success: true,
+                data: {
+                    range: 5000,
+                    horizontalFOV: 120,
+                    verticalFOV: 30,
+                    frequency: 10,
+                    targetCount: 3,
+                    noiseLevel: 'medium'
+                }
+            });
+        });
+
+        this.app.post('/api/config/radar', (req, res) => {
+            try {
+                const config = req.body;
+                console.log('📡 Radar config updated:', config);
+                res.json({
+                    success: true,
+                    message: 'Radar configuration updated successfully',
+                    data: config
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to update radar configuration',
+                    error: error.message
+                });
+            }
+        });
+
+        // Controller configuration endpoints
+        this.app.get('/api/config/controller', (req, res) => {
+            res.json({
+                success: true,
+                data: {
+                    canBitrate: 500000,
+                    canInterface: 'mock',
+                    messageTimeout: 1000,
+                    retryCount: 3,
+                    bufferSize: 1000,
+                    debugMode: 'disabled'
+                }
+            });
+        });
+
+        this.app.post('/api/config/controller', (req, res) => {
+            try {
+                const config = req.body;
+                console.log('🎮 Controller config updated:', config);
+                res.json({
+                    success: true,
+                    message: 'Controller configuration updated successfully',
+                    data: config
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to update controller configuration',
                     error: error.message
                 });
             }

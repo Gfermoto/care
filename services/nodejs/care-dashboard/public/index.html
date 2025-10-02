@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C.A.R.E. Radar Dashboard</title>
+    <title>C.A.R.E. 3D Radar Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,62 +14,73 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
+            background: #1a1a1a;
+            color: #fff;
             min-height: 100vh;
+            overflow: hidden;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #2a2a2a;
+            border-right: 2px solid #444;
             padding: 20px;
+            overflow-y: auto;
+        }
+
+        .viewport {
+            flex: 1;
+            position: relative;
+            background: #111;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            color: white;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #444;
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            color: #4CAF50;
         }
 
         .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
+            font-size: 0.9rem;
+            color: #aaa;
         }
 
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+        .status-panel {
+            background: #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
         }
 
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+        .status-panel h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-        }
-
-        .card h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
         }
 
         .status-indicator {
             display: inline-block;
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             margin-right: 8px;
         }
@@ -76,67 +88,21 @@
         .status-online { background-color: #4CAF50; }
         .status-warning { background-color: #FF9800; }
         .status-danger { background-color: #F44336; }
-        .status-offline { background-color: #9E9E9E; }
-
-        .radar-display {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            min-height: 300px;
-            position: relative;
-        }
-
-        .radar-grid {
-            position: relative;
-            width: 100%;
-            height: 250px;
-            background: radial-gradient(circle, #e3f2fd 0%, #f8f9fa 100%);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .radar-target {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: #ff4444;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            animation: pulse 2s infinite;
-        }
-
-        .radar-target.safe {
-            background: #4CAF50;
-        }
-
-        .radar-target.warning {
-            background: #FF9800;
-        }
-
-        .radar-target.danger {
-            background: #F44336;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
+        .status-offline { background-color: #666; }
 
         .emergency-panel {
             background: linear-gradient(135deg, #ff4444, #cc0000);
             color: white;
             text-align: center;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
             display: none;
+            animation: emergencyBlink 1s infinite;
         }
 
         .emergency-panel.active {
             display: block;
-            animation: emergencyBlink 1s infinite;
         }
 
         @keyframes emergencyBlink {
@@ -144,191 +110,872 @@
             51%, 100% { opacity: 0.7; }
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .stat-item {
-            background: #f8f9fa;
+        .targets-panel {
+            background: #333;
+            border-radius: 8px;
             padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-
-        .connection-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 25px;
-            color: white;
-            font-weight: bold;
-            z-index: 1000;
-        }
-
-        .connection-connected {
-            background: #4CAF50;
-        }
-
-        .connection-disconnected {
-            background: #F44336;
-        }
-
-        .target-list {
+            margin-bottom: 20px;
             max-height: 200px;
             overflow-y: auto;
         }
 
+        .targets-panel h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
         .target-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .target-item:last-child {
-            border-bottom: none;
-        }
-
-        .target-info {
-            flex: 1;
+            background: #444;
+            border-radius: 5px;
+            padding: 8px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
         }
 
         .target-coords {
-            font-size: 0.9rem;
-            color: #666;
+            color: #aaa;
+            font-size: 0.75rem;
         }
 
-        .target-distance {
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(42, 42, 42, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+        }
+
+        .controls-panel h4 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #333;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
             font-weight: bold;
-            color: #667eea;
+        }
+
+        .connection-connected {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .connection-disconnected {
+            background: #F44336;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: #444;
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 2px;
+        }
+
+        .fov-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(42, 42, 42, 0.9);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        .fov-indicator h4 {
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+
+        #radar3d {
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
 <body>
-    <div class="connection-status" id="connectionStatus">
-        <span id="connectionText">Connecting...</span>
-    </div>
-
-    <div class="container">
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
         <div class="header">
-            <h1>🛡️ C.A.R.E. Radar Dashboard</h1>
-            <p>Collaborative Awareness Radar for Empathic interaction</p>
+                <h1>🛡️ C.A.R.E.</h1>
+                <p>3D Radar Dashboard</p>
         </div>
 
         <div class="emergency-panel" id="emergencyPanel">
-            <h2>🚨 EMERGENCY STOP ACTIVE</h2>
-            <p>Radar detected safety violation - System stopped</p>
+                <h2>🚨 EMERGENCY STOP</h2>
+                <p>Safety violation detected!</p>
         </div>
 
-        <div class="dashboard-grid">
-            <!-- System Status Card -->
-            <div class="card">
+            <div class="status-panel">
                 <h3>📊 System Status</h3>
-                <div id="systemStatus">
-                    <p><span class="status-indicator status-offline"></span>Status: <span id="systemStatusText">Unknown</span></p>
-                    <p>Uptime: <span id="systemUptime">0s</span></p>
-                    <p>CAN Messages: <span id="canMessages">0</span></p>
-                    <p>ROS Messages: <span id="rosMessages">0</span></p>
-                    <p>Errors: <span id="systemErrors">0</span></p>
+                <div class="status-item">
+                    <span><span class="status-indicator status-offline"></span>Status:</span>
+                    <span id="systemStatus">Unknown</span>
+                </div>
+                <div class="status-item">
+                    <span>Uptime:</span>
+                    <span id="systemUptime">0s</span>
+                </div>
+                <div class="status-item">
+                    <span>Messages:</span>
+                    <span id="canMessages">0</span>
+                </div>
+                <div class="status-item">
+                    <span>Errors:</span>
+                    <span id="systemErrors">0</span>
                 </div>
             </div>
 
-            <!-- Safety Status Card -->
-            <div class="card">
+            <div class="status-panel">
                 <h3>🛡️ Safety Status</h3>
-                <div id="safetyStatus">
-                    <p><span class="status-indicator status-offline"></span>Emergency Stop: <span id="emergencyStopStatus">Inactive</span></p>
-                    <p>Min Distance: <span id="minDistance">500mm</span></p>
-                    <p>Active Targets: <span id="activeTargets">0</span></p>
-                    <p>Last Trigger: <span id="lastTrigger">Never</span></p>
+                <div class="status-item">
+                    <span><span class="status-indicator status-offline"></span>Emergency Stop:</span>
+                    <span id="emergencyStopStatus">Inactive</span>
+                </div>
+                <div class="status-item">
+                    <span>Min Distance:</span>
+                    <span id="minDistance">500mm</span>
+                </div>
+                <div class="status-item">
+                    <span>Active Targets:</span>
+                    <span id="activeTargets">0</span>
+                </div>
+                <div class="status-item">
+                    <span>Last Trigger:</span>
+                    <span id="lastTrigger">Never</span>
                 </div>
             </div>
 
-            <!-- Radar Display Card -->
-            <div class="card">
-                <h3>🎯 Radar Targets</h3>
-                <div class="radar-display">
-                    <div class="radar-grid" id="radarGrid">
-                        <!-- Radar targets will be rendered here -->
+            <div class="targets-panel">
+                <h3>🎯 Active Targets</h3>
+                <div id="targetList">
+                    <div style="color: #666; text-align: center; padding: 20px;">
+                        No targets detected
                     </div>
                 </div>
-                <div class="target-list" id="targetList">
-                    <!-- Target list will be populated here -->
-                </div>
             </div>
 
-            <!-- Statistics Card -->
-            <div class="card">
-                <h3>📈 Statistics</h3>
+            <div class="status-panel">
+                <h3>📈 Performance</h3>
                 <div class="stats-grid">
                     <div class="stat-item">
                         <div class="stat-value" id="messagesPerSecond">0</div>
-                        <div class="stat-label">Messages/sec</div>
+                        <div class="stat-label">Msg/sec</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="averageLatency">0</div>
-                        <div class="stat-label">Avg Latency (ms)</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="peakLatency">0</div>
-                        <div class="stat-label">Peak Latency (ms)</div>
+                        <div class="stat-label">Latency (ms)</div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- 3D Viewport -->
+        <div class="viewport">
+            <div class="connection-status" id="connectionStatus">
+                <span id="connectionText">Connecting...</span>
+            </div>
+
+            <div class="controls-panel">
+                <h4>🎮 View Controls</h4>
+                <div class="control-group">
+                    <label>View Mode:</label>
+                    <select id="viewMode">
+                        <option value="radar">Radar View</option>
+                        <option value="top">Top View</option>
+                        <option value="side">Side View</option>
+                        <option value="free">Free Camera</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Range (m):</label>
+                    <input type="range" id="rangeSlider" min="1" max="6" value="6" step="1">
+                    <span id="rangeValue">6m</span>
+                </div>
+                <div class="control-group">
+                    <label>Show Grid:</label>
+                    <input type="checkbox" id="showGrid" checked>
+                </div>
+                <div class="control-group">
+                    <label>Show FOV:</label>
+                    <input type="checkbox" id="showFOV" checked>
+                    <small style="color: #888;">4 Radar System (0°, 90°, 180°, 270°)</small>
+                </div>
+            </div>
+
+            <div class="fov-indicator">
+                <h4>📐 Field of View (4 Radar System)</h4>
+                <div>Radars: <span id="fovHorizontal">0°, 90°, 180°, 270°</span></div>
+                <div>Horizontal FOV: <span id="fovVertical">300° to 60°</span></div>
+                <div>Range: <span id="fovRange">6m</span></div>
+                <small style="color: #ffff00; font-size: 0.8em;">Yellow lines = Radar directions</small>
+            </div>
+
+            <div id="radar3d"></div>
         </div>
     </div>
 
     <script>
-        class CareDashboard {
+        // Simple OrbitControls implementation
+        class SimpleOrbitControls {
+            constructor(camera, domElement) {
+                this.camera = camera;
+                this.domElement = domElement;
+                this.enableDamping = true;
+                this.dampingFactor = 0.05;
+                this.minDistance = 2;
+                this.maxDistance = 50;
+                this.target = new THREE.Vector3();
+
+                this.spherical = new THREE.Spherical();
+                this.sphericalDelta = new THREE.Spherical();
+
+                // Инициализируем spherical после установки позиции камеры
+                this.updateSpherical();
+
+                this.isMouseDown = false;
+                this.mouseX = 0;
+                this.mouseY = 0;
+
+                this.setupEventListeners();
+                this.update();
+            }
+
+            setupEventListeners() {
+                this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
+                this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
+                this.domElement.addEventListener('mouseup', this.onMouseUp.bind(this));
+                this.domElement.addEventListener('wheel', this.onWheel.bind(this));
+            }
+
+            onMouseDown(event) {
+                this.isMouseDown = true;
+                this.mouseX = event.clientX;
+                this.mouseY = event.clientY;
+            }
+
+            onMouseMove(event) {
+                if (!this.isMouseDown) return;
+
+                const deltaX = event.clientX - this.mouseX;
+                const deltaY = event.clientY - this.mouseY;
+
+                this.sphericalDelta.theta -= deltaX * 0.01;
+                this.sphericalDelta.phi -= deltaY * 0.01;
+
+                this.mouseX = event.clientX;
+                this.mouseY = event.clientY;
+
+                this.update();
+            }
+
+            onMouseUp(event) {
+                this.isMouseDown = false;
+            }
+
+            onWheel(event) {
+                const delta = event.deltaY * 0.001;
+                this.spherical.radius += delta;
+                this.spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this.spherical.radius));
+                this.update();
+            }
+
+            updateSpherical() {
+                const position = this.camera.position.clone().sub(this.target);
+                this.spherical.setFromVector3(position);
+            }
+
+            update() {
+                this.spherical.theta += this.sphericalDelta.theta;
+                this.spherical.phi += this.sphericalDelta.phi;
+                this.spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, this.spherical.phi));
+
+                if (this.enableDamping) {
+                    this.sphericalDelta.theta *= (1 - this.dampingFactor);
+                    this.sphericalDelta.phi *= (1 - this.dampingFactor);
+                } else {
+                    this.sphericalDelta.set(0, 0, 0);
+                }
+
+                const position = new THREE.Vector3();
+                position.setFromSpherical(this.spherical);
+                position.add(this.target);
+
+                this.camera.position.copy(position);
+                this.camera.lookAt(this.target);
+            }
+        }
+
+        class Care3DDashboard {
             constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
                 this.ws = null;
                 this.reconnectInterval = null;
+                this.targets = [];
+                this.radarRange = 6; // 6 метров согласно HLK-LD2450
+
+                this.init3D();
+                this.initControls();
                 this.connect();
+                this.animate();
+            }
+
+            init3D() {
+                const container = document.getElementById('radar3d');
+
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x111111);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000); // FOV для лучшего обзора HLK-LD2450
+                this.camera.position.set(0, 5, 10);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                container.appendChild(this.renderer.domElement);
+
+                // Controls
+                this.controls = new SimpleOrbitControls(this.camera, this.renderer.domElement);
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 10, 5);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                this.scene.add(directionalLight);
+
+                // Create radar elements
+                this.createRadarGrid();
+                this.createFOV();
+                this.createCoordinateAxes();
+
+                // Handle resize
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            createRadarGrid() {
+                const gridSize = 20;
+                const gridDivisions = 20;
+                const grid = new THREE.GridHelper(gridSize, gridDivisions, 0x444444, 0x222222);
+                grid.position.y = 0;
+                grid.name = 'radarGrid';
+                this.scene.add(grid);
+            }
+
+        createFOV() {
+            // НЕ ИСПОЛЬЗУЕМ ConeGeometry - она создает проблемы с позиционированием
+            // Вместо этого создаем простой сектор из линий на плоскости XZ
+
+            // Создаем градуировку и дуги FOV
+            this.createFOVBoundaryLines();
+            this.createFOVArcs();
+            this.createSafetyZone();
+        }
+
+
+        createCoordinateAxes() {
+            const axesHelper = new THREE.AxesHelper(2);
+            axesHelper.name = 'coordinateAxes';
+            this.scene.add(axesHelper);
+
+            // Создаем 4 желтые линии радаров на азимутах 0°, 90°, 180°, 270°
+            this.createRadarLines();
+        }
+
+        createRadarLines() {
+            // 4 желтые линии радаров на азимутах 0°, 90°, 180°, 270° длиной 1м
+            const radarMaterial = new THREE.LineBasicMaterial({
+                color: 0xffff00, // Желтый цвет
+                transparent: true,
+                opacity: 0.9,
+                linewidth: 3
+            });
+
+            const radarLength = 1.0; // 1 метр
+
+            // ВСЕ ЛИНИИ НАЧИНАЮТСЯ ИЗ ЦЕНТРА (0, 0, 0)
+            // Радар 0° (направление +Z)
+            const radar0Points = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, radarLength)
+            ];
+            const radar0Geometry = new THREE.BufferGeometry().setFromPoints(radar0Points);
+            const radar0Line = new THREE.Line(radar0Geometry, radarMaterial);
+            radar0Line.name = 'radarLine_0';
+            this.scene.add(radar0Line);
+
+            // Радар 90° (направление +X)
+            const radar90Points = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(radarLength, 0, 0)
+            ];
+            const radar90Geometry = new THREE.BufferGeometry().setFromPoints(radar90Points);
+            const radar90Line = new THREE.Line(radar90Geometry, radarMaterial);
+            radar90Line.name = 'radarLine_90';
+            this.scene.add(radar90Line);
+
+            // Радар 180° (направление -Z)
+            const radar180Points = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -radarLength)
+            ];
+            const radar180Geometry = new THREE.BufferGeometry().setFromPoints(radar180Points);
+            const radar180Line = new THREE.Line(radar180Geometry, radarMaterial);
+            radar180Line.name = 'radarLine_180';
+            this.scene.add(radar180Line);
+
+            // Радар 270° (направление -X)
+            const radar270Points = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(-radarLength, 0, 0)
+            ];
+            const radar270Geometry = new THREE.BufferGeometry().setFromPoints(radar270Points);
+            const radar270Line = new THREE.Line(radar270Geometry, radarMaterial);
+            radar270Line.name = 'radarLine_270';
+            this.scene.add(radar270Line);
+        }
+
+        createFOVBoundaryLines() {
+            // ГОРИЗОНТАЛЬНАЯ градуировка: КРАСНЫЕ линии
+            const redSolidMaterial = new THREE.LineBasicMaterial({
+                color: 0xff0000,
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 3
+            });
+
+            const redDashedMaterial = new THREE.LineDashedMaterial({
+                color: 0xff0000,
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 2,
+                dashSize: 0.3,
+                gapSize: 0.2
+            });
+
+            // ВЕРТИКАЛЬНАЯ градуировка: СИНИЕ линии
+            const blueSolidMaterial = new THREE.LineBasicMaterial({
+                color: 0x0088ff,
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 2
+            });
+
+            const blueDashedMaterial = new THREE.LineDashedMaterial({
+                color: 0x0088ff,
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 2,
+                dashSize: 0.3,
+                gapSize: 0.2
+            });
+
+            // ═══════════════════════════════════════════════════════════
+            // ГОРИЗОНТАЛЬНЫЙ FOV: от 300° до 60° (через 0°)
+            // ═══════════════════════════════════════════════════════════
+            
+            // Границы: сплошные красные 6м на 300° и 60°
+            this.createHorizontalFOVLine(300, 6, redSolidMaterial, false, 'hFOV_300');
+            this.createHorizontalFOVLine(60, 6, redSolidMaterial, false, 'hFOV_60');
+
+            // ═══════════════════════════════════════════════════════════
+            // КРАСНЫЕ пунктирные линии ТОЛЬКО на азимутах 90°, 180°, 270°
+            // по 3 метра
+            // ═══════════════════════════════════════════════════════════
+            this.createHorizontalFOVLine(90, 3, redDashedMaterial, true, 'hFOV_90');
+            this.createHorizontalFOVLine(180, 3, redDashedMaterial, true, 'hFOV_180');
+            this.createHorizontalFOVLine(270, 3, redDashedMaterial, true, 'hFOV_270');
+
+            // ═══════════════════════════════════════════════════════════
+            // ВЕРТИКАЛЬНЫЙ FOV: от -35° до +35° по азимуту 0°
+            // ═══════════════════════════════════════════════════════════
+
+            // Границы: сплошные синие 6м на ±35°
+            this.createVerticalFOVLine(0, 35, 6, blueSolidMaterial, false, 'vFOV_0_35');
+            this.createVerticalFOVLine(0, -35, 6, blueSolidMaterial, false, 'vFOV_0_-35');
+
+            // Градуировка каждые 10°: сплошные синие 6м
+            this.createVerticalFOVLine(0, 30, 6, blueSolidMaterial, false, 'vFOV_0_30');
+            this.createVerticalFOVLine(0, -30, 6, blueSolidMaterial, false, 'vFOV_0_-30');
+            this.createVerticalFOVLine(0, 20, 6, blueSolidMaterial, false, 'vFOV_0_20');
+            this.createVerticalFOVLine(0, -20, 6, blueSolidMaterial, false, 'vFOV_0_-20');
+            this.createVerticalFOVLine(0, 10, 6, blueSolidMaterial, false, 'vFOV_0_10');
+            this.createVerticalFOVLine(0, -10, 6, blueSolidMaterial, false, 'vFOV_0_-10');
+
+            // ═══════════════════════════════════════════════════════════
+            // Вертикальные линии на других азимутах (90°, 180°, 270°)
+            // Пунктирные синие 3м на ±35°
+            // ═══════════════════════════════════════════════════════════
+            this.createVerticalFOVLine(90, 35, 3, blueDashedMaterial, true, 'vFOV_90_35');
+            this.createVerticalFOVLine(90, -35, 3, blueDashedMaterial, true, 'vFOV_90_-35');
+            this.createVerticalFOVLine(180, 35, 3, blueDashedMaterial, true, 'vFOV_180_35');
+            this.createVerticalFOVLine(180, -35, 3, blueDashedMaterial, true, 'vFOV_180_-35');
+            this.createVerticalFOVLine(270, 35, 3, blueDashedMaterial, true, 'vFOV_270_35');
+            this.createVerticalFOVLine(270, -35, 3, blueDashedMaterial, true, 'vFOV_270_-35');
+        }
+
+        createHorizontalFOVLine(azimuthDegrees, length, material, isDashed, name) {
+            const azimuthRadians = Math.PI * azimuthDegrees / 180;
+            const points = [];
+
+            // ВСЕ ЛИНИИ НАЧИНАЮТСЯ ИЗ ЦЕНТРА (0, 0, 0)
+            for (let i = 0; i <= 20; i++) {
+                const distance = length * i / 20;
+                points.push(new THREE.Vector3(
+                    Math.sin(azimuthRadians) * distance,
+                    0,
+                    Math.cos(azimuthRadians) * distance
+                ));
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = isDashed ? new THREE.Line(geometry, material) : new THREE.Line(geometry, material);
+
+            if (isDashed) {
+                line.computeLineDistances(); // Необходимо для LineDashedMaterial
+            }
+
+            line.name = name;
+            this.scene.add(line);
+        }
+
+        createVerticalFOVLine(azimuthDegrees, pitchDegrees, length, material, isDashed, name) {
+            const azimuthRadians = Math.PI * azimuthDegrees / 180;
+            const pitchRadians = Math.PI * pitchDegrees / 180;
+            const points = [];
+
+            // ВСЕ ЛИНИИ НАЧИНАЮТСЯ ИЗ ЦЕНТРА (0, 0, 0)
+            for (let i = 0; i <= 20; i++) {
+                const distance = length * i / 20;
+                points.push(new THREE.Vector3(
+                    Math.sin(azimuthRadians) * Math.cos(pitchRadians) * distance,
+                    Math.sin(pitchRadians) * distance,
+                    Math.cos(azimuthRadians) * Math.cos(pitchRadians) * distance
+                ));
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = isDashed ? new THREE.Line(geometry, material) : new THREE.Line(geometry, material);
+
+            if (isDashed) {
+                line.computeLineDistances(); // Необходимо для LineDashedMaterial
+            }
+
+            line.name = name;
+            this.scene.add(line);
+        }
+
+        createFOVArcs() {
+            // ГОРИЗОНТАЛЬНАЯ ДУГА: Зеленая дуга от 300° до 60° на расстоянии 6м
+            const horizontalArcMaterial = new THREE.LineBasicMaterial({
+                color: 0x00ff00, // Зеленый
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 3
+            });
+
+            const horizontalArcPoints = [];
+            const arcRadius = 6; // 6 метров
+            const startAngle = Math.PI * 300 / 180;
+            
+            // Создаем дугу от 300° до 60° через 0°
+            const segments = 60;
+            for (let i = 0; i <= segments; i++) {
+                let angle = startAngle + (Math.PI * 2 / 3) * i / segments;
+                horizontalArcPoints.push(new THREE.Vector3(
+                    Math.sin(angle) * arcRadius,
+                    0,
+                    Math.cos(angle) * arcRadius
+                ));
+            }
+
+            const horizontalArcGeometry = new THREE.BufferGeometry().setFromPoints(horizontalArcPoints);
+            const horizontalArc = new THREE.Line(horizontalArcGeometry, horizontalArcMaterial);
+            horizontalArc.name = 'horizontalFOVArc';
+            this.scene.add(horizontalArc);
+
+            // ВЕРТИКАЛЬНАЯ ДУГА: Синяя дуга от -35° до +35° на расстоянии 6м по азимуту 0°
+            const verticalArcMaterial = new THREE.LineBasicMaterial({
+                color: 0x0088ff, // Синий
+                transparent: true,
+                opacity: 0.8,
+                linewidth: 3
+            });
+
+            const verticalArcPoints = [];
+            const pitchStart = -35 * Math.PI / 180;
+            const pitchEnd = 35 * Math.PI / 180;
+            const azimuth0 = 0; // Азимут 0° (направление +Z)
+            
+            for (let i = 0; i <= segments; i++) {
+                const pitch = pitchStart + (pitchEnd - pitchStart) * i / segments;
+                verticalArcPoints.push(new THREE.Vector3(
+                    Math.sin(azimuth0) * Math.cos(pitch) * arcRadius,
+                    Math.sin(pitch) * arcRadius,
+                    Math.cos(azimuth0) * Math.cos(pitch) * arcRadius
+                ));
+            }
+
+            const verticalArcGeometry = new THREE.BufferGeometry().setFromPoints(verticalArcPoints);
+            const verticalArc = new THREE.Line(verticalArcGeometry, verticalArcMaterial);
+            verticalArc.name = 'verticalFOVArc';
+            this.scene.add(verticalArc);
+        }
+
+        createSafetyZone() {
+            // Safety зона из настроек контроллера (по умолчанию 0.5м = 500мм)
+            this.safetyDistance = 0.5; // метры
+            
+            const safetyMaterial = new THREE.LineBasicMaterial({
+                color: 0xffff00, // Желтый
+                transparent: true,
+                opacity: 0.9,
+                linewidth: 4
+            });
+
+            // ГОРИЗОНТАЛЬНАЯ SAFETY ДУГА: от 300° до 60° на safety distance
+            const hSafetyArcPoints = [];
+            const startAngle = Math.PI * 300 / 180;
+            const segments = 60;
+            
+            for (let i = 0; i <= segments; i++) {
+                let angle = startAngle + (Math.PI * 2 / 3) * i / segments;
+                hSafetyArcPoints.push(new THREE.Vector3(
+                    Math.sin(angle) * this.safetyDistance,
+                    0,
+                    Math.cos(angle) * this.safetyDistance
+                ));
+            }
+
+            const hSafetyArcGeometry = new THREE.BufferGeometry().setFromPoints(hSafetyArcPoints);
+            const hSafetyArc = new THREE.Line(hSafetyArcGeometry, safetyMaterial);
+            hSafetyArc.name = 'horizontalSafetyArc';
+            this.scene.add(hSafetyArc);
+
+            // ВЕРТИКАЛЬНАЯ SAFETY ДУГА: от -35° до +35° по азимуту 0° на safety distance
+            const vSafetyArcPoints = [];
+            const pitchStart = -35 * Math.PI / 180;
+            const pitchEnd = 35 * Math.PI / 180;
+            const azimuth0 = 0;
+            
+            for (let i = 0; i <= segments; i++) {
+                const pitch = pitchStart + (pitchEnd - pitchStart) * i / segments;
+                vSafetyArcPoints.push(new THREE.Vector3(
+                    Math.sin(azimuth0) * Math.cos(pitch) * this.safetyDistance,
+                    Math.sin(pitch) * this.safetyDistance,
+                    Math.cos(azimuth0) * Math.cos(pitch) * this.safetyDistance
+                ));
+            }
+
+            const vSafetyArcGeometry = new THREE.BufferGeometry().setFromPoints(vSafetyArcPoints);
+            const vSafetyArc = new THREE.Line(vSafetyArcGeometry, safetyMaterial);
+            vSafetyArc.name = 'verticalSafetyArc';
+            this.scene.add(vSafetyArc);
+        }
+
+
+            initControls() {
+                // View mode selector
+                document.getElementById('viewMode').addEventListener('change', (e) => {
+                    this.setViewMode(e.target.value);
+                });
+
+                // Range slider
+                const rangeSlider = document.getElementById('rangeSlider');
+                const rangeValue = document.getElementById('rangeValue');
+                rangeSlider.addEventListener('input', (e) => {
+                    this.radarRange = parseFloat(e.target.value);
+                    rangeValue.textContent = `${this.radarRange}m`;
+                    this.updateFOV();
+                });
+
+                // Grid toggle
+                document.getElementById('showGrid').addEventListener('change', (e) => {
+                    const grid = this.scene.getObjectByName('radarGrid');
+                    if (grid) grid.visible = e.target.checked;
+                });
+
+                // FOV toggle
+            document.getElementById('showFOV').addEventListener('change', (e) => {
+                const horizontalFOV = this.scene.getObjectByName('horizontalFOV');
+
+                if (horizontalFOV) horizontalFOV.visible = e.target.checked;
+
+                // Управляем видимостью всех линий FOV
+                const fovLines = [
+                    // Горизонтальные границы
+                    'hFOV_300', 'hFOV_60',
+                    // Горизонтальные на других азимутах (пунктирные красные)
+                    'hFOV_90', 'hFOV_180', 'hFOV_270',
+                    // Вертикальные границы и градуировка по азимуту 0°
+                    'vFOV_0_35', 'vFOV_0_-35', 'vFOV_0_30', 'vFOV_0_-30',
+                    'vFOV_0_20', 'vFOV_0_-20', 'vFOV_0_10', 'vFOV_0_-10',
+                    // Вертикальные на других азимутах
+                    'vFOV_90_35', 'vFOV_90_-35', 'vFOV_180_35', 'vFOV_180_-35',
+                    'vFOV_270_35', 'vFOV_270_-35'
+                ];
+                fovLines.forEach(lineName => {
+                    const line = this.scene.getObjectByName(lineName);
+                    if (line) line.visible = e.target.checked;
+                });
+
+                // Управляем видимостью дуг FOV
+                const fovArcs = ['horizontalFOVArc', 'verticalFOVArc'];
+                fovArcs.forEach(arcName => {
+                    const arc = this.scene.getObjectByName(arcName);
+                    if (arc) arc.visible = e.target.checked;
+                });
+
+                // Управляем видимостью Safety дуг
+                const safetyArcs = ['horizontalSafetyArc', 'verticalSafetyArc'];
+                safetyArcs.forEach(arcName => {
+                    const arc = this.scene.getObjectByName(arcName);
+                    if (arc) arc.visible = e.target.checked;
+                });
+
+                // Управляем видимостью линий радаров
+                const radarLines = ['radarLine_0', 'radarLine_90', 'radarLine_180', 'radarLine_270'];
+                radarLines.forEach(lineName => {
+                    const line = this.scene.getObjectByName(lineName);
+                    if (line) line.visible = e.target.checked;
+                });
+            });
+            }
+
+            setViewMode(mode) {
+                switch (mode) {
+                    case 'radar':
+                        this.camera.position.set(0, 8, 12);
+                        this.controls.target.set(0, 0, 0);
+                        this.camera.lookAt(0, 0, 0);
+                        break;
+                    case 'top':
+                        this.camera.position.set(0, 25, 0);
+                        this.controls.target.set(0, 0, 0);
+                        this.camera.lookAt(0, 0, 0);
+                        break;
+                    case 'side':
+                        this.camera.position.set(15, 0, 0);
+                        this.controls.target.set(0, 0, 0);
+                        this.camera.lookAt(0, 0, 0);
+                        break;
+                    case 'free':
+                        // Keep current position but reset controls
+                        this.controls.target.set(0, 0, 0);
+                        break;
+                }
+
+                // Force controls update
+                if (this.controls.updateSpherical) {
+                    this.controls.updateSpherical();
+                }
+                this.controls.update();
+
+                console.log(`🎮 Camera view changed to: ${mode}`);
+            }
+
+        updateFOV() {
+            // Дуги FOV всегда 6м - не масштабируются
+            // Range slider управляет только grid и display range
+            
+            // Update FOV indicator
+            document.getElementById('fovRange').textContent = `6m (fixed)`; // FOV всегда 6м
+        }
+
+            onWindowResize() {
+                const container = document.getElementById('radar3d');
+                this.camera.aspect = container.clientWidth / container.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
             }
 
             connect() {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const wsUrl = `${protocol}//${window.location.host}`;
-                
+
                 this.ws = new WebSocket(wsUrl);
-                
+
                 this.ws.onopen = () => {
-                    console.log('🔌 Connected to C.A.R.E. Dashboard');
+                    console.log('🔌 Connected to C.A.R.E. 3D Dashboard');
                     this.updateConnectionStatus(true);
                     if (this.reconnectInterval) {
                         clearInterval(this.reconnectInterval);
                         this.reconnectInterval = null;
                     }
                 };
-                
+
                 this.ws.onmessage = (event) => {
                     const message = JSON.parse(event.data);
                     this.handleMessage(message);
                 };
-                
+
                 this.ws.onclose = () => {
-                    console.log('🔌 Disconnected from C.A.R.E. Dashboard');
+                    console.log('🔌 Disconnected from C.A.R.E. 3D Dashboard');
                     this.updateConnectionStatus(false);
                     this.scheduleReconnect();
                 };
-                
+
                 this.ws.onerror = (error) => {
                     console.error('❌ WebSocket error:', error);
                     this.updateConnectionStatus(false);
@@ -347,7 +994,7 @@
             updateConnectionStatus(connected) {
                 const statusEl = document.getElementById('connectionStatus');
                 const textEl = document.getElementById('connectionText');
-                
+
                 if (connected) {
                     statusEl.className = 'connection-status connection-connected';
                     textEl.textContent = 'Connected';
@@ -385,62 +1032,100 @@
             }
 
             updateRadarDisplay(radarData) {
-                const radarGrid = document.getElementById('radarGrid');
-                const targetList = document.getElementById('targetList');
-                
                 // Clear existing targets
-                radarGrid.innerHTML = '';
+                this.targets.forEach(target => {
+                    this.scene.remove(target);
+                });
+                this.targets = [];
+
+                // Update target list
+                const targetList = document.getElementById('targetList');
                 targetList.innerHTML = '';
-                
-                // Render targets
+
+                if (radarData.targets && radarData.targets.length > 0) {
                 radarData.targets.forEach((target, index) => {
                     if (target.valid) {
-                        // Calculate position (assuming 5m range, centered display)
-                        const x = (target.x / 5000) * 100 + 50; // Convert to percentage
-                        const y = (target.y / 5000) * 100 + 50;
-                        
-                        // Create radar target element
-                        const targetEl = document.createElement('div');
-                        targetEl.className = 'radar-target';
-                        targetEl.style.left = `${Math.max(0, Math.min(100, x))}%`;
-                        targetEl.style.top = `${Math.max(0, Math.min(100, y))}%`;
-                        
-                        // Set target status based on distance
-                        if (target.distance < 500) {
-                            targetEl.classList.add('danger');
-                        } else if (target.distance < 1000) {
-                            targetEl.classList.add('warning');
-                        } else {
-                            targetEl.classList.add('safe');
-                        }
-                        
-                        radarGrid.appendChild(targetEl);
-                        
-                        // Add to target list
+                            // Create 3D target
+                            const targetMesh = this.createTarget(target);
+                            this.scene.add(targetMesh);
+                            this.targets.push(targetMesh);
+
+                            // Add to list
                         const listItem = document.createElement('div');
                         listItem.className = 'target-item';
+                            const distance = Math.sqrt(target.x * target.x + target.y * target.y);
+                            let statusClass = 'safe';
+                            if (distance < 500) statusClass = 'danger';
+                            else if (distance < 1000) statusClass = 'warning';
+
                         listItem.innerHTML = `
-                            <div class="target-info">
-                                <div>Target ${target.id}</div>
+                                <div>
+                                    <strong>Target ${target.id}</strong>
                                 <div class="target-coords">X: ${target.x}mm, Y: ${target.y}mm</div>
                             </div>
-                            <div class="target-distance">${target.distance}mm</div>
+                                <div style="color: ${statusClass === 'danger' ? '#ff4444' : statusClass === 'warning' ? '#ffaa00' : '#4CAF50'};">
+                                    ${Math.round(distance)}mm
+                                </div>
                         `;
                         targetList.appendChild(listItem);
                     }
+                    });
+                } else {
+                    targetList.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">No targets detected</div>';
+                }
+            }
+
+            createTarget(target) {
+                const geometry = new THREE.SphereGeometry(0.2, 16, 12);
+                const distance = Math.sqrt(target.x * target.x + target.y * target.y); // в миллиметрах
+
+                // Используем safetyDistance (по умолчанию 500мм)
+                const safetyDistanceMm = (this.safetyDistance || 0.5) * 1000; // конвертируем в мм
+
+                let color = 0x4CAF50; // Green - safe
+                if (distance < safetyDistanceMm) {
+                    color = 0xff0000; // Red - в зоне safety!
+                } else if (distance < safetyDistanceMm * 2) {
+                    color = 0xffaa00; // Orange - предупреждение
+                }
+
+                const material = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.9
                 });
+
+                const targetMesh = new THREE.Mesh(geometry, material);
+                targetMesh.position.set(target.x / 1000, 0.2, target.y / 1000); // Convert mm to m
+
+                // Add animation properties
+                targetMesh.userData = {
+                    originalTarget: target,
+                    animationTime: 0,
+                    lastUpdate: Date.now(),
+                    velocity: {
+                        x: (Math.random() - 0.5) * 0.03, // Random velocity
+                        y: 0,
+                        z: (Math.random() - 0.5) * 0.03
+                    },
+                    originalScale: targetMesh.scale.clone(),
+                    pulsePhase: Math.random() * Math.PI * 2,
+                    inSafetyZone: distance < safetyDistanceMm
+                };
+
+                return targetMesh;
             }
 
             updateSafetyStatus(safetyData) {
-                document.getElementById('emergencyStopStatus').textContent = 
+                document.getElementById('emergencyStopStatus').textContent =
                     safetyData.emergency_stop ? 'ACTIVE' : 'Inactive';
-                document.getElementById('minDistance').textContent = 
+                document.getElementById('minDistance').textContent =
                     `${safetyData.min_distance}mm`;
-                document.getElementById('activeTargets').textContent = 
-                    safetyData.active_targets;
-                document.getElementById('lastTrigger').textContent = 
+                document.getElementById('activeTargets').textContent =
+                    safetyData.active_targets || 0;
+                document.getElementById('lastTrigger').textContent =
                     safetyData.last_trigger || 'Never';
-                
+
                 // Show/hide emergency panel
                 const emergencyPanel = document.getElementById('emergencyPanel');
                 if (safetyData.emergency_stop) {
@@ -451,45 +1136,71 @@
             }
 
             updateSystemStatus(systemData) {
-                document.getElementById('systemStatusText').textContent = 
+                document.getElementById('systemStatus').textContent =
                     systemData.status || 'Unknown';
-                document.getElementById('systemUptime').textContent = 
+                document.getElementById('systemUptime').textContent =
                     this.formatUptime(systemData.uptime || 0);
-                document.getElementById('canMessages').textContent = 
+                document.getElementById('canMessages').textContent =
                     systemData.canMessages || 0;
-                document.getElementById('rosMessages').textContent = 
-                    systemData.rosMessages || 0;
-                document.getElementById('systemErrors').textContent = 
+                document.getElementById('systemErrors').textContent =
                     systemData.errors || 0;
             }
 
             updateStatistics(statsData) {
-                document.getElementById('messagesPerSecond').textContent = 
+                document.getElementById('messagesPerSecond').textContent =
                     Math.round(statsData.messagesPerSecond || 0);
-                document.getElementById('averageLatency').textContent = 
+                document.getElementById('averageLatency').textContent =
                     Math.round(statsData.averageLatency || 0);
-                document.getElementById('peakLatency').textContent = 
-                    Math.round(statsData.peakLatency || 0);
             }
 
             formatUptime(seconds) {
                 const hours = Math.floor(seconds / 3600);
                 const minutes = Math.floor((seconds % 3600) / 60);
                 const secs = Math.floor(seconds % 60);
-                
+
                 if (hours > 0) {
-                    return `${hours}h ${minutes}m ${secs}s`;
+                    return `${hours}h ${minutes}m`;
                 } else if (minutes > 0) {
                     return `${minutes}m ${secs}s`;
                 } else {
                     return `${secs}s`;
                 }
             }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // Animate targets
+                this.targets.forEach(target => {
+                    if (target.userData.velocity) {
+                        // Move target
+                        target.position.x += target.userData.velocity.x;
+                        target.position.z += target.userData.velocity.z;
+
+                        // Keep targets within range
+                        const maxDistance = this.radarRange;
+                        const distance = Math.sqrt(target.position.x * target.position.x + target.position.z * target.position.z);
+                        if (distance > maxDistance) {
+                            // Reverse velocity when hitting boundary
+                            target.userData.velocity.x *= -1;
+                            target.userData.velocity.z *= -1;
+                        }
+
+                        // Pulsing animation
+                        const time = Date.now() * 0.003;
+                        const scale = 1 + Math.sin(time + target.userData.pulsePhase) * 0.3;
+                        target.scale.setScalar(scale);
+                    }
+                });
+
+                this.controls.update();
+                this.renderer.render(this.scene, this.camera);
+            }
         }
 
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new CareDashboard();
+            new Care3DDashboard();
         });
     </script>
 </body>
