@@ -68,7 +68,7 @@ class MockCANInterface extends EventEmitter {
             updateInterval: 100, // ms
             safetyZone: {
                 minDistance: 500, // mm
-                maxDistance: 8000, // mm
+                maxDistance: 6500, // mm - ограничиваем до 6.5м
                 angleRange: 120 // degrees
             },
             ...options
@@ -89,18 +89,42 @@ class MockCANInterface extends EventEmitter {
     }
 
     initializeTargets() {
-        // Инициализация случайных целей
+        // КРИТИЧНО: Очищаем массив целей перед инициализацией!
+        this.targets = [];
+
+        // Инициализация случайных целей СТРОГО в пределах FOV и 6.5м
         for (let i = 0; i < this.options.targetCount; i++) {
+            // FOV от -60° до +60° (это 120° сектор от 300° до 60° через 0°)
+            const angle = Math.random() * 120 - 60; // -60° to +60°
+            const distance = Math.random() * 5500 + 1000; // 1-6.5м (в миллиметрах)
+
+            // ВАЖНО: Вычисляем координаты так, чтобы distance = sqrt(x^2 + y^2)
+            const angleRad = angle * Math.PI / 180;
+            const x = Math.sin(angleRad) * distance; // X координата в мм
+            const y = Math.cos(angleRad) * distance; // Y координата в мм
+
+            // ПРОВЕРКА: расстояние должно быть точно distance
+            const actualDistance = Math.sqrt(x * x + y * y);
+
+            console.log(`🎯 Init Target ${i}: angle=${angle.toFixed(1)}°, distance=${distance.toFixed(0)}mm, actual=${actualDistance.toFixed(0)}mm, x=${x.toFixed(0)}mm, y=${y.toFixed(0)}mm`);
+
+            if (actualDistance > 6500) {
+                console.error(`❌ ERROR: Target ${i} exceeded 6.5m: ${actualDistance.toFixed(0)}mm!`);
+            }
+
             this.targets.push({
                 id: i,
-                x: Math.random() * 8000 - 4000, // -4000 to 4000 mm
-                y: Math.random() * 8000 - 4000, // -4000 to 4000 mm
-                distance: Math.random() * 6000 + 1000, // 1000 to 7000 mm
-                speed: Math.random() * 2000 - 1000, // -1000 to 1000 mm/s
+                x: x,
+                y: y,
+                distance: actualDistance, // Используем реальное расстояние
+                speed: (Math.random() - 0.5) * 100,
+                angle: angle,
                 valid: true,
                 lastUpdate: Date.now()
             });
         }
+
+        console.log(`✅ Initialized ${this.targets.length} targets within 6.5m`);
     }
 
     // Имитация CAN сообщения
@@ -114,19 +138,54 @@ class MockCANInterface extends EventEmitter {
 
     // Генерация данных цели
     generateTargetData(target) {
-        // Добавляем небольшое движение
-        target.x += (Math.random() - 0.5) * 100;
-        target.y += (Math.random() - 0.5) * 100;
+        // Более медленное движение целей для стабильности
+        const moveSpeed = 20; // мм за обновление (уменьшил с 50 до 20)
+        target.x += (Math.random() - 0.5) * moveSpeed;
+        target.y += (Math.random() - 0.5) * moveSpeed;
 
-        // Обновляем расстояние
+        // СНАЧАЛА проверяем и ограничиваем расстояние ДО вычисления угла!
         target.distance = Math.sqrt(target.x * target.x + target.y * target.y);
 
-        // Добавляем случайность к скорости
-        target.speed += (Math.random() - 0.5) * 50;
-        target.speed = Math.max(-1000, Math.min(1000, target.speed));
+        // СТРОГО держим цели в пределах 6.5м
+        if (target.distance > 6500) {
+            console.log(`🚨 Target ${target.id} exceeded 6.5m: ${target.distance.toFixed(0)}mm, adjusting...`);
+            console.log(`   Before: x=${target.x.toFixed(0)}mm, y=${target.y.toFixed(0)}mm`);
+            // Отскакиваем от границы
+            const factor = 6500 / target.distance;
+            target.x *= factor;
+            target.y *= factor;
+            target.distance = 6500;
+            console.log(`   After: x=${target.x.toFixed(0)}mm, y=${target.y.toFixed(0)}mm, distance=${target.distance}mm`);
+        }
 
-        // Иногда цель исчезает/появляется
-        if (Math.random() < 0.05) {
+        // ТЕПЕРЬ вычисляем угол с правильными координатами
+        target.angle = Math.atan2(target.x, target.y) * 180 / Math.PI;
+
+        // Проверяем FOV (300°-60° через 0°)
+        let azimuthNorm = ((target.angle % 360) + 360) % 360;
+        if (azimuthNorm >= 300 || azimuthNorm <= 60) {
+            // Цель в FOV - все ОК
+        } else {
+            // Цель вне FOV - возвращаем в FOV
+            if (azimuthNorm > 60 && azimuthNorm < 300) {
+                // Между 60° и 300° - вне FOV
+                if (azimuthNorm < 180) {
+                    target.angle = 60; // ближе к 60°
+                } else {
+                    target.angle = 300; // ближе к 300°
+                }
+                // Пересчитываем координаты с ИСПРАВЛЕННЫМ расстоянием
+                const angleRad = target.angle * Math.PI / 180;
+                target.x = Math.sin(angleRad) * target.distance;
+                target.y = Math.cos(angleRad) * target.distance;
+            }
+        }
+
+        // Обновляем скорость (медленная)
+        target.speed = (Math.random() - 0.5) * 100; // ±50mm/s
+
+        // Иногда цель исчезает/появляется (реже)
+        if (Math.random() < 0.01) {
             target.valid = !target.valid;
         }
 

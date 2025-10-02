@@ -60,7 +60,7 @@ class CareIntegratedDemo {
                 updateInterval: 100, // ms
                 safetyZone: {
                     minDistance: 500,
-                    maxDistance: 8000,
+                    maxDistance: 6500, // КРИТИЧНО: не больше 6.5м!
                     angleRange: 120
                 }
             });
@@ -137,11 +137,11 @@ class CareIntegratedDemo {
 
         const targetId = canId - 0x200;
 
-        // Unpack target data
-        const x = (data[0] << 8) | data[1];
-        const y = (data[2] << 8) | data[3];
-        const distance = (data[4] << 8) | data[5];
-        const speed = (data[6] << 8) | data[7];
+        // Unpack target data (16-bit signed)
+        const x = ((data[0] << 8) | data[1]) << 16 >> 16; // Convert to signed 16-bit
+        const y = ((data[2] << 8) | data[3]) << 16 >> 16; // Convert to signed 16-bit
+        const distance = (data[4] << 8) | data[5]; // Distance is unsigned
+        const speed = ((data[6] << 8) | data[7]) << 16 >> 16; // Convert to signed 16-bit
 
         // Update target in shared data
         if (!this.sharedData.radar.targets[targetId]) {
