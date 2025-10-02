@@ -639,13 +639,26 @@
             this.createHorizontalFOVLine(300, 6, redSolidMaterial, false, 'hFOV_300');
             this.createHorizontalFOVLine(60, 6, redSolidMaterial, false, 'hFOV_60');
 
-            // ═══════════════════════════════════════════════════════════
-            // КРАСНЫЕ пунктирные линии ТОЛЬКО на азимутах 90°, 180°, 270°
-            // по 3 метра
-            // ═══════════════════════════════════════════════════════════
-            this.createHorizontalFOVLine(90, 3, redDashedMaterial, true, 'hFOV_90');
-            this.createHorizontalFOVLine(180, 3, redDashedMaterial, true, 'hFOV_180');
-            this.createHorizontalFOVLine(270, 3, redDashedMaterial, true, 'hFOV_270');
+            // Зеленая градуировка каждые 10° внутри FOV (сплошные зеленые линии 6м)
+            const greenSolidMaterial = new THREE.LineBasicMaterial({
+                color: 0x00ff00, // Зеленый
+                transparent: true,
+                opacity: 0.6,
+                linewidth: 2
+            });
+            
+            // От 300° до 360° (0°): 310°, 320°, 330°, 340°, 350°
+            this.createHorizontalFOVLine(310, 6, greenSolidMaterial, false, 'hFOV_310');
+            this.createHorizontalFOVLine(320, 6, greenSolidMaterial, false, 'hFOV_320');
+            this.createHorizontalFOVLine(330, 6, greenSolidMaterial, false, 'hFOV_330');
+            this.createHorizontalFOVLine(340, 6, greenSolidMaterial, false, 'hFOV_340');
+            this.createHorizontalFOVLine(350, 6, greenSolidMaterial, false, 'hFOV_350');
+            // От 0° до 60°: 10°, 20°, 30°, 40°, 50°
+            this.createHorizontalFOVLine(10, 6, greenSolidMaterial, false, 'hFOV_10');
+            this.createHorizontalFOVLine(20, 6, greenSolidMaterial, false, 'hFOV_20');
+            this.createHorizontalFOVLine(30, 6, greenSolidMaterial, false, 'hFOV_30');
+            this.createHorizontalFOVLine(40, 6, greenSolidMaterial, false, 'hFOV_40');
+            this.createHorizontalFOVLine(50, 6, greenSolidMaterial, false, 'hFOV_50');
 
             // ═══════════════════════════════════════════════════════════
             // ВЕРТИКАЛЬНЫЙ FOV: от -35° до +35° по азимуту 0°
@@ -864,14 +877,15 @@
 
                 // Управляем видимостью всех линий FOV
                 const fovLines = [
-                    // Горизонтальные границы
+                    // Горизонтальные границы (красные)
                     'hFOV_300', 'hFOV_60',
-                    // Горизонтальные на других азимутах (пунктирные красные)
-                    'hFOV_90', 'hFOV_180', 'hFOV_270',
-                    // Вертикальные границы и градуировка по азимуту 0°
+                    // Горизонтальная зеленая градуировка каждые 10°
+                    'hFOV_310', 'hFOV_320', 'hFOV_330', 'hFOV_340', 'hFOV_350',
+                    'hFOV_10', 'hFOV_20', 'hFOV_30', 'hFOV_40', 'hFOV_50',
+                    // Вертикальные границы и градуировка по азимуту 0° (синие)
                     'vFOV_0_35', 'vFOV_0_-35', 'vFOV_0_30', 'vFOV_0_-30',
                     'vFOV_0_20', 'vFOV_0_-20', 'vFOV_0_10', 'vFOV_0_-10',
-                    // Вертикальные на других азимутах
+                    // Вертикальные на других азимутах (синие пунктирные)
                     'vFOV_90_35', 'vFOV_90_-35', 'vFOV_180_35', 'vFOV_180_-35',
                     'vFOV_270_35', 'vFOV_270_-35'
                 ];
@@ -1077,13 +1091,28 @@
 
             createTarget(target) {
                 const geometry = new THREE.SphereGeometry(0.2, 16, 12);
+                const xMeters = target.x / 1000;
+                const yMeters = target.y / 1000;
                 const distance = Math.sqrt(target.x * target.x + target.y * target.y); // в миллиметрах
+
+                // Проверка: цель в FOV и в пределах 6м?
+                const distanceMeters = distance / 1000;
+                const azimuthDeg = Math.atan2(xMeters, yMeters) * 180 / Math.PI; // азимут в градусах
+                
+                // FOV от 300° до 60° (через 0°)
+                // Нормализуем азимут к диапазону [0, 360)
+                const azimuthNorm = ((azimuthDeg % 360) + 360) % 360;
+                const inHorizontalFOV = (azimuthNorm >= 300 || azimuthNorm <= 60);
+                const inRange = distanceMeters <= 6.0;
+                const outOfFOV = !inHorizontalFOV || !inRange;
 
                 // Используем safetyDistance (по умолчанию 500мм)
                 const safetyDistanceMm = (this.safetyDistance || 0.5) * 1000; // конвертируем в мм
 
                 let color = 0x4CAF50; // Green - safe
-                if (distance < safetyDistanceMm) {
+                if (outOfFOV) {
+                    color = 0x0088ff; // Blue - вне FOV или >6м
+                } else if (distance < safetyDistanceMm) {
                     color = 0xff0000; // Red - в зоне safety!
                 } else if (distance < safetyDistanceMm * 2) {
                     color = 0xffaa00; // Orange - предупреждение
@@ -1096,13 +1125,14 @@
                 });
 
                 const targetMesh = new THREE.Mesh(geometry, material);
-                targetMesh.position.set(target.x / 1000, 0.2, target.y / 1000); // Convert mm to m
+                targetMesh.position.set(xMeters, 0.2, yMeters); // Convert mm to m
 
                 // Add animation properties
                 targetMesh.userData = {
                     originalTarget: target,
                     animationTime: 0,
                     lastUpdate: Date.now(),
+                    createdAt: Date.now(),
                     velocity: {
                         x: (Math.random() - 0.5) * 0.03, // Random velocity
                         y: 0,
@@ -1110,7 +1140,9 @@
                     },
                     originalScale: targetMesh.scale.clone(),
                     pulsePhase: Math.random() * Math.PI * 2,
-                    inSafetyZone: distance < safetyDistanceMm
+                    inSafetyZone: distance < safetyDistanceMm,
+                    outOfFOV: outOfFOV,
+                    markedForRemoval: false
                 };
 
                 return targetMesh;
@@ -1170,28 +1202,75 @@
             animate() {
                 requestAnimationFrame(() => this.animate());
 
+                const now = Date.now();
+                const targetsToRemove = [];
+
                 // Animate targets
-                this.targets.forEach(target => {
+                this.targets.forEach((target, index) => {
                     if (target.userData.velocity) {
                         // Move target
                         target.position.x += target.userData.velocity.x;
                         target.position.z += target.userData.velocity.z;
 
-                        // Keep targets within range
-                        const maxDistance = this.radarRange;
+                        // Check if target is still in FOV and within 6m
                         const distance = Math.sqrt(target.position.x * target.position.x + target.position.z * target.position.z);
-                        if (distance > maxDistance) {
-                            // Reverse velocity when hitting boundary
-                            target.userData.velocity.x *= -1;
-                            target.userData.velocity.z *= -1;
+                        const azimuthDeg = Math.atan2(target.position.x, target.position.z) * 180 / Math.PI;
+                        const azimuthNorm = ((azimuthDeg % 360) + 360) % 360;
+                        const inHorizontalFOV = (azimuthNorm >= 300 || azimuthNorm <= 60);
+                        const inRange = distance <= 6.0;
+                        const outOfFOV = !inHorizontalFOV || !inRange;
+
+                        // Если цель вышла за пределы FOV или 6м - окрасить в синий
+                        if (outOfFOV && !target.userData.outOfFOV) {
+                            target.material.color.setHex(0x0088ff); // Blue
+                            target.userData.outOfFOV = true;
+                            target.userData.outOfFOVTime = now;
+                        }
+
+                        // Удалить синие цели через 1 секунду
+                        if (target.userData.outOfFOV && (now - target.userData.outOfFOVTime > 1000)) {
+                            target.userData.markedForRemoval = true;
+                        }
+
+                        // Если цель внутри FOV - держать её там
+                        if (!outOfFOV) {
+                            // Keep targets within FOV and 6m range
+                            if (distance > 5.8 || !inHorizontalFOV) {
+                                // Reverse velocity when approaching boundary
+                                target.userData.velocity.x *= -1;
+                                target.userData.velocity.z *= -1;
+                            }
+
+                            // Update color based on safety zone
+                            const distanceMm = distance * 1000;
+                            const safetyDistanceMm = (this.safetyDistance || 0.5) * 1000;
+                            if (distanceMm < safetyDistanceMm) {
+                                target.material.color.setHex(0xff0000); // Red
+                            } else if (distanceMm < safetyDistanceMm * 2) {
+                                target.material.color.setHex(0xffaa00); // Orange
+                            } else {
+                                target.material.color.setHex(0x4CAF50); // Green
+                            }
                         }
 
                         // Pulsing animation
-                        const time = Date.now() * 0.003;
+                        const time = now * 0.003;
                         const scale = 1 + Math.sin(time + target.userData.pulsePhase) * 0.3;
                         target.scale.setScalar(scale);
+
+                        // Mark for removal if flagged
+                        if (target.userData.markedForRemoval) {
+                            targetsToRemove.push(index);
+                        }
                     }
                 });
+
+                // Remove marked targets
+                for (let i = targetsToRemove.length - 1; i >= 0; i--) {
+                    const index = targetsToRemove[i];
+                    this.scene.remove(this.targets[index]);
+                    this.targets.splice(index, 1);
+                }
 
                 this.controls.update();
                 this.renderer.render(this.scene, this.camera);
