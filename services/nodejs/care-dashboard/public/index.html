@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>C.A.R.E. 3D Radar Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * {
@@ -285,11 +286,11 @@
                 <div class="status-item">
                     <span>Min Distance:</span>
                     <span id="minDistance">500mm</span>
-                </div>
+            </div>
                 <div class="status-item">
                     <span>Active Targets:</span>
                     <span id="activeTargets">0</span>
-                </div>
+                    </div>
                 <div class="status-item">
                     <span>Last Trigger:</span>
                     <span id="lastTrigger">Never</span>
@@ -316,9 +317,9 @@
                         <div class="stat-value" id="averageLatency">0</div>
                         <div class="stat-label">Latency (ms)</div>
                     </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
         <!-- 3D Viewport -->
         <div class="viewport">
@@ -349,16 +350,21 @@
                 <div class="control-group">
                     <label>Show FOV:</label>
                     <input type="checkbox" id="showFOV" checked>
-                    <small style="color: #888;">4 Radar System (0°, 90°, 180°, 270°)</small>
+                    <small style="color: #888;">Single Radar System (0°)</small>
+                </div>
+                <div class="control-group">
+                    <label>Show Trails:</label>
+                    <input type="checkbox" id="showTrails" checked>
+                    <small style="color: #888;">Target movement trails</small>
                 </div>
             </div>
 
             <div class="fov-indicator">
-                <h4>📐 Field of View (4 Radar System)</h4>
-                <div>Radars: <span id="fovHorizontal">0°, 90°, 180°, 270°</span></div>
-                <div>Horizontal FOV: <span id="fovVertical">300° to 60°</span></div>
+                <h4>📐 Field of View (Single Radar System)</h4>
+                <div>Radar: <span id="fovHorizontal">0°</span></div>
+                <div>Horizontal FOV: <span id="fovVertical">±60°</span></div>
+                <div>Vertical FOV: <span id="fovVerticalRange">±35°</span></div>
                 <div>Range: <span id="fovRange">6m</span></div>
-                <small style="color: #ffff00; font-size: 0.8em;">Yellow lines = Radar directions</small>
             </div>
 
             <div id="radar3d"></div>
@@ -374,7 +380,7 @@
                 this.enableDamping = true;
                 this.dampingFactor = 0.05;
                 this.minDistance = 2;
-                this.maxDistance = 50;
+                this.maxDistance = 60;
                 this.target = new THREE.Vector3();
 
                 this.spherical = new THREE.Spherical();
@@ -465,7 +471,10 @@
                 this.ws = null;
                 this.reconnectInterval = null;
                 this.targets = [];
-                this.radarRange = 6; // 6 метров согласно HLK-LD2450
+                this.targetTrails = []; // Шлейфы целей
+                this.trailLength = 5; // Количество точек в шлейфе
+                this.trailOpacity = 0.6; // Прозрачность шлейфа
+                this.radarRange = 6; // 6 метров для FOV
 
                 this.init3D();
                 this.initControls();
@@ -915,6 +924,13 @@
                     if (line) line.visible = e.target.checked;
                 });
             });
+
+            // Trails toggle
+            document.getElementById('showTrails').addEventListener('change', (e) => {
+                this.targetTrails.forEach(trail => {
+                    trail.visible = e.target.checked;
+                });
+            });
             }
 
             setViewMode(mode) {
@@ -1063,6 +1079,51 @@
             }
 
             updateRadarDisplay(radarData) {
+                // Получаем список активных целей
+                const activeTargets = radarData.targets ? radarData.targets.filter(t => t.valid) : [];
+
+                // Удаляем шлейфы для неактивных целей
+                this.targetTrails = this.targetTrails.filter(trail => {
+                    const targetExists = activeTargets.some(target => target.id === trail.userData.targetId);
+                    if (!targetExists) {
+                        this.scene.remove(trail);
+                        trail.geometry.dispose();
+                        trail.material.dispose();
+                        return false;
+                    }
+                    return true;
+                });
+
+            // Обновляем или создаем шлейфы для активных целей
+            activeTargets.forEach(target => {
+                let trail = this.targetTrails.find(t => t.userData.targetId === target.id);
+                if (!trail) {
+                    trail = this.createTargetTrail(target.id, target.state);
+                        } else {
+                    // Обновляем цвет шлейфа если состояние изменилось
+                    if (trail.userData.targetState !== target.state) {
+                        trail.userData.targetState = target.state;
+                        let trailColor = 0x4CAF50; // Green по умолчанию
+                        if (target.state === 'safety') {
+                            trailColor = 0xff0000; // Red для safety zone
+                        } else if (target.state === 'out_of_fov') {
+                            trailColor = 0x0088ff; // Blue для вне FOV (6-6.5м)
+                        } else if (target.state === 'out_of_range') {
+                            trailColor = 0x8800ff; // Purple для полного вылета за 6.5м
+                        }
+                        trail.material.color.setHex(trailColor);
+                    }
+                }
+
+                // Обновляем позицию шлейфа
+                const targetPosition = {
+                    x: target.x / 1000, // Конвертируем мм в метры
+                    y: 0.2, // Небольшая высота над землей
+                    z: target.y / 1000
+                };
+                this.updateTargetTrail(trail, targetPosition);
+            });
+
                 // Clear existing targets
                 this.targets.forEach(target => {
                     this.scene.remove(target);
@@ -1073,33 +1134,31 @@
                 const targetList = document.getElementById('targetList');
                 targetList.innerHTML = '';
 
-                if (radarData.targets && radarData.targets.length > 0) {
-                radarData.targets.forEach((target, index) => {
-                    if (target.valid) {
-                            // Create 3D target
-                            const targetMesh = this.createTarget(target);
-                            this.scene.add(targetMesh);
-                            this.targets.push(targetMesh);
+                if (activeTargets.length > 0) {
+                    activeTargets.forEach((target, index) => {
+                        // Create 3D target
+                        const targetMesh = this.createTarget(target);
+                        this.scene.add(targetMesh);
+                        this.targets.push(targetMesh);
 
-                            // Add to list
+                        // Add to list
                         const listItem = document.createElement('div');
                         listItem.className = 'target-item';
-                            const distance = Math.sqrt(target.x * target.x + target.y * target.y);
-                            let statusClass = 'safe';
-                            if (distance < 500) statusClass = 'danger';
-                            else if (distance < 1000) statusClass = 'warning';
+                        const distance = Math.sqrt(target.x * target.x + target.y * target.y);
+                        let statusClass = 'safe';
+                        if (distance < 500) statusClass = 'danger';
+                        else if (distance < 1000) statusClass = 'warning';
 
                         listItem.innerHTML = `
-                                <div>
-                                    <strong>Target ${target.id}</strong>
+                            <div>
+                                <strong>Target ${target.id}</strong>
                                 <div class="target-coords">X: ${target.x}mm, Y: ${target.y}mm</div>
                             </div>
-                                <div style="color: ${statusClass === 'danger' ? '#ff4444' : statusClass === 'warning' ? '#ffaa00' : '#4CAF50'};">
-                                    ${Math.round(distance)}mm
-                                </div>
+                            <div style="color: ${statusClass === 'danger' ? '#ff4444' : statusClass === 'warning' ? '#ffaa00' : '#4CAF50'};">
+                                ${Math.round(distance)}mm
+                            </div>
                         `;
                         targetList.appendChild(listItem);
-                    }
                     });
                 } else {
                     targetList.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">No targets detected</div>';
@@ -1110,31 +1169,26 @@
                 const geometry = new THREE.SphereGeometry(0.2, 16, 12);
                 const xMeters = target.x / 1000;
                 const yMeters = target.y / 1000;
-                const distance = Math.sqrt(target.x * target.x + target.y * target.y); // в миллиметрах
 
-                // Проверка: цель в FOV и в пределах 6м?
-                const distanceMeters = distance / 1000;
-                const azimuthDeg = Math.atan2(xMeters, yMeters) * 180 / Math.PI; // азимут в градусах
-
-                // FOV от 300° до 60° (через 0°)
-                // Нормализуем азимут к диапазону [0, 360)
-                const azimuthNorm = ((azimuthDeg % 360) + 360) % 360;
-                const inHorizontalFOV = (azimuthNorm >= 300 || azimuthNorm <= 60);
-                const inRange = distanceMeters <= 6.0;
+                // Вычисляем дистанцию и проверяем зоны
+                const distance = Math.sqrt(target.x * target.x + target.y * target.y);
+                const safetyDistanceMm = 500; // 0.5м в мм
+                const angleDeg = Math.atan2(target.y, target.x) * 180 / Math.PI;
+                const inHorizontalFOV = Math.abs(angleDeg) <= 60;
+                const inRange = distance <= 6500; // 6.5м
                 const outOfFOV = !inHorizontalFOV || !inRange;
 
-                // Используем safetyDistance (по умолчанию 500мм)
-                const safetyDistanceMm = (this.safetyDistance || 0.5) * 1000; // конвертируем в мм
-
-                let color = 0x4CAF50; // Green - safe
-                if (outOfFOV) {
-                    color = 0x0088ff; // Blue - вне FOV или >6м
-                } else if (distance < safetyDistanceMm) {
-                    color = 0xff0000; // Red - в зоне safety!
-                } else if (distance < safetyDistanceMm * 2) {
-                    color = 0xffaa00; // Orange - предупреждение
+                // Цвет в зависимости от состояния цели из Mock CAN
+                let color = 0x4CAF50; // Green - по умолчанию
+                if (target.state === 'safety') {
+                    color = 0xff0000; // Red - в зоне safety
+                } else if (target.state === 'out_of_fov') {
+                    color = 0x0088ff; // Blue - вне FOV (6-6.5м)
+                } else if (target.state === 'out_of_range') {
+                    color = 0x8800ff; // Purple - полный вылет за 6.5м
+                } else {
+                    color = 0x4CAF50; // Green - в FOV
                 }
-                // Желтые цели - это Safety зоны (желтые дуги на 0.5м), не цели!
 
                 const material = new THREE.MeshBasicMaterial({
                     color: color,
@@ -1148,11 +1202,12 @@
                 // Add animation properties
                 targetMesh.userData = {
                     originalTarget: target,
+                    state: target.state,
                     animationTime: 0,
                     lastUpdate: Date.now(),
                     createdAt: Date.now(),
                     velocity: {
-                        x: (Math.random() - 0.5) * 0.02, // Увеличил скорость движения
+                        x: (Math.random() - 0.5) * 0.02,
                         y: 0,
                         z: (Math.random() - 0.5) * 0.02
                     },
@@ -1166,19 +1221,92 @@
                 return targetMesh;
             }
 
+            // Создание шлейфа для цели
+            createTargetTrail(targetId, targetState = 'active') {
+                const trailGeometry = new THREE.BufferGeometry();
+
+                // Цвет шлейфа в зависимости от состояния цели
+                let trailColor = 0x4CAF50; // Green по умолчанию
+                if (targetState === 'safety') {
+                    trailColor = 0xff0000; // Red для safety zone
+                } else if (targetState === 'out_of_fov') {
+                    trailColor = 0x0088ff; // Blue для вне FOV (6-6.5м)
+                } else if (targetState === 'out_of_range') {
+                    trailColor = 0x8800ff; // Purple для полного вылета за 6.5м
+                }
+
+                const trailMaterial = new THREE.LineBasicMaterial({
+                    color: trailColor,
+                    transparent: true,
+                    opacity: this.trailOpacity,
+                    linewidth: 2
+                });
+
+                // Инициализируем массив позиций для шлейфа
+                const positions = new Float32Array(this.trailLength * 3);
+                trailGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                const trail = new THREE.Line(trailGeometry, trailMaterial);
+                trail.userData = {
+                    targetId: targetId,
+                    targetState: targetState,
+                    positions: positions,
+                    currentIndex: 0,
+                    isFull: false
+                };
+
+                this.targetTrails.push(trail);
+                this.scene.add(trail);
+
+                return trail;
+            }
+
+            // Обновление позиции шлейфа
+            updateTargetTrail(trail, targetPosition) {
+                const { positions, currentIndex, isFull } = trail.userData;
+
+                // Добавляем новую позицию
+                positions[currentIndex * 3] = targetPosition.x;
+                positions[currentIndex * 3 + 1] = targetPosition.y;
+                positions[currentIndex * 3 + 2] = targetPosition.z;
+
+                // Обновляем индекс
+                trail.userData.currentIndex = (currentIndex + 1) % this.trailLength;
+
+                // Если шлейф заполнен, отмечаем это
+                if (!isFull && trail.userData.currentIndex === 0) {
+                    trail.userData.isFull = true;
+                }
+
+                // Обновляем геометрию
+                trail.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Очистка шлейфа цели
+            clearTargetTrail(targetId) {
+                const trailIndex = this.targetTrails.findIndex(trail => trail.userData.targetId === targetId);
+                if (trailIndex !== -1) {
+                    const trail = this.targetTrails[trailIndex];
+                    this.scene.remove(trail);
+                    trail.geometry.dispose();
+                    trail.material.dispose();
+                    this.targetTrails.splice(trailIndex, 1);
+                }
+            }
+
             updateSafetyStatus(safetyData) {
                 document.getElementById('emergencyStopStatus').textContent =
-                    safetyData.emergency_stop ? 'ACTIVE' : 'Inactive';
+                    safetyData.emergencyStop ? 'ACTIVE' : 'Inactive';
                 document.getElementById('minDistance').textContent =
-                    `${safetyData.min_distance}mm`;
+                    `${safetyData.minDistance || 500}mm`;
                 document.getElementById('activeTargets').textContent =
-                    safetyData.active_targets || 0;
+                    safetyData.activeTargets || 0;
                 document.getElementById('lastTrigger').textContent =
-                    safetyData.last_trigger || 'Never';
+                    safetyData.lastTrigger || 'Never';
 
                 // Show/hide emergency panel
                 const emergencyPanel = document.getElementById('emergencyPanel');
-                if (safetyData.emergency_stop) {
+                if (safetyData.emergencyStop) {
                     emergencyPanel.classList.add('active');
                 } else {
                     emergencyPanel.classList.remove('active');

@@ -85,6 +85,11 @@ class MockCANInterface extends EventEmitter {
             startTime: Date.now()
         };
 
+        // Синусоидальные параметры для движения
+        this.time = 0;
+        this.maxTargets = 3;
+        this.minTargets = 1;
+
         this.initializeTargets();
     }
 
@@ -92,39 +97,108 @@ class MockCANInterface extends EventEmitter {
         // КРИТИЧНО: Очищаем массив целей перед инициализацией!
         this.targets = [];
 
+        // Стабильное количество целей от 1 до 3
+        const targetCount = Math.floor(Math.random() * 3) + 1; // 1, 2 или 3 цели
+        console.log(`🎯 Initializing ${targetCount} targets with sinusoidal movement`);
+
         // Инициализация случайных целей СТРОГО в пределах FOV и 6.5м
-        for (let i = 0; i < this.options.targetCount; i++) {
-            // FOV от -60° до +60° (это 120° сектор от 300° до 60° через 0°)
-            const angle = Math.random() * 120 - 60; // -60° to +60°
-            const distance = Math.random() * 5500 + 1000; // 1-6.5м (в миллиметрах)
-
-            // ВАЖНО: Вычисляем координаты так, чтобы distance = sqrt(x^2 + y^2)
-            const angleRad = angle * Math.PI / 180;
-            const x = Math.sin(angleRad) * distance; // X координата в мм
-            const y = Math.cos(angleRad) * distance; // Y координата в мм
-
-            // ПРОВЕРКА: расстояние должно быть точно distance
-            const actualDistance = Math.sqrt(x * x + y * y);
-
-            console.log(`🎯 Init Target ${i}: angle=${angle.toFixed(1)}°, distance=${distance.toFixed(0)}mm, actual=${actualDistance.toFixed(0)}mm, x=${x.toFixed(0)}mm, y=${y.toFixed(0)}mm`);
-
-            if (actualDistance > 6500) {
-                console.error(`❌ ERROR: Target ${i} exceeded 6.5m: ${actualDistance.toFixed(0)}mm!`);
-            }
-
-            this.targets.push({
+        for (let i = 0; i < targetCount; i++) {
+            // Простая инициализация (как в ROS)
+            const target = {
                 id: i,
-                x: x,
-                y: y,
-                distance: actualDistance, // Используем реальное расстояние
-                speed: (Math.random() - 0.5) * 100,
-                angle: angle,
+                x: 0, // будет вычислено в updateTargetPosition
+                y: 0, // будет вычислено в updateTargetPosition
+                distance: 0, // будет вычислено в updateTargetPosition
+                angle: 0, // будет вычислено в updateTargetPosition
+                speed: 1500, // фиксированная скорость 1.5 м/с
                 valid: true,
-                lastUpdate: Date.now()
-            });
+                lastUpdate: Date.now(),
+                createdAt: Date.now() // время создания для расчета времени жизни
+            };
+
+            // Вычисляем начальную позицию
+            this.updateTargetPosition(target);
+            console.log(`🎯 Init Target ${i}: smooth movement, ${(target.distance/1000).toFixed(1)}m at ${target.angle.toFixed(1)}°`);
+            this.targets.push(target);
         }
 
         console.log(`✅ Initialized ${this.targets.length} targets within 6.5m`);
+    }
+
+    // Обновление позиции цели с упрощённой синусоидальной моделью
+    updateTargetPosition(target) {
+        const currentTime = Date.now();
+
+        // Инициализируем параметры движения при первом вызове
+        if (!target.movementParams) {
+            // Инициализируем позицию, если она не задана
+            if (!target.x || !target.y) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 2000 + Math.random() * 3000; // 2-5м
+                target.x = Math.sin(angle) * dist;
+                target.y = Math.cos(angle) * dist;
+            }
+
+            target.movementParams = {
+                // Базовые параметры движения
+                baseAngle: (Math.random() - 0.5) * 60, // начальный угол ±30°
+                baseDistance: 2000 + Math.random() * 3000, // базовая дистанция 2-5м
+
+                // Скорости движения (увеличены на 30%)
+                angleSpeed: 0.4 + Math.random() * 0.2, // скорость изменения угла (0.4-0.6 рад/с)
+                distanceSpeed: 0.25 + Math.random() * 0.15, // скорость изменения дистанции (0.25-0.4 м/с)
+
+                // Фазы для плавности
+                anglePhase: Math.random() * Math.PI * 2,
+                distancePhase: Math.random() * Math.PI * 2,
+
+                // Время смены направления
+                directionChangeTime: currentTime + 5000 + Math.random() * 5000, // 5-10 сек
+
+                // Скорость цели (м/с) - увеличено на 30%
+                targetSpeed: 0.39 + Math.random() * 0.52, // 0.39-0.91 м/с
+
+                // Время создания
+                createdAt: target.createdAt || currentTime
+            };
+        }
+
+        const params = target.movementParams;
+        const lifeTime = (currentTime - params.createdAt) / 1000.0; // время жизни в секундах
+
+        // Проверяем, нужно ли сменить направление
+        if (currentTime > params.directionChangeTime) {
+            params.baseAngle = (Math.random() - 0.5) * 60;
+            params.baseDistance = 2000 + Math.random() * 3000;
+            params.angleSpeed = 0.4 + Math.random() * 0.2;
+            params.distanceSpeed = 0.25 + Math.random() * 0.15;
+            params.anglePhase = Math.random() * Math.PI * 2;
+            params.distancePhase = Math.random() * Math.PI * 2;
+            params.directionChangeTime = currentTime + 5000 + Math.random() * 5000;
+        }
+
+        // Горизонтальное движение в пределах ±60°
+        const hAngle = params.baseAngle + 30 * Math.sin(lifeTime * params.angleSpeed + params.anglePhase);
+
+        // Дистанция с большим размахом - от 1м до 6.5м
+        const distance = Math.max(1000, Math.min(6500, params.baseDistance + 2000 * Math.sin(lifeTime * params.distanceSpeed + params.distancePhase)));
+
+        // Вычисляем координаты
+        const angleRad = hAngle * Math.PI / 180;
+        const x = Math.sin(angleRad) * distance;
+        const y = Math.cos(angleRad) * distance;
+
+        // Обновляем позицию цели
+        target.x = x;
+        target.y = y;
+        target.distance = distance;
+        target.angle = hAngle;
+
+        // Реалистичная скорость человека (0.39-0.91 м/с) - увеличено на 30%
+        target.speed = (params.targetSpeed * 1000); // конвертируем в мм/с
+
+        // Обновляем время последнего обновления
+        target.lastUpdate = currentTime;
     }
 
     // Имитация CAN сообщения
@@ -136,60 +210,37 @@ class MockCANInterface extends EventEmitter {
         };
     }
 
-    // Генерация данных цели
+    // Генерация данных цели с синусоидальным движением
     generateTargetData(target) {
-        // Более медленное движение целей для стабильности
-        const moveSpeed = 20; // мм за обновление (уменьшил с 50 до 20)
-        target.x += (Math.random() - 0.5) * moveSpeed;
-        target.y += (Math.random() - 0.5) * moveSpeed;
+        // Обновляем позицию с размашистым движением
+        this.updateTargetPosition(target);
 
-        // СНАЧАЛА проверяем и ограничиваем расстояние ДО вычисления угла!
-        target.distance = Math.sqrt(target.x * target.x + target.y * target.y);
+        // Определяем состояние цели
+        const state = this.checkTargetState(target);
+        target.state = state;
 
-        // СТРОГО держим цели в пределах 6.5м
-        if (target.distance > 6500) {
-            console.log(`🚨 Target ${target.id} exceeded 6.5m: ${target.distance.toFixed(0)}mm, adjusting...`);
-            console.log(`   Before: x=${target.x.toFixed(0)}mm, y=${target.y.toFixed(0)}mm`);
-            // Отскакиваем от границы
-            const factor = 6500 / target.distance;
-            target.x *= factor;
-            target.y *= factor;
-            target.distance = 6500;
-            console.log(`   After: x=${target.x.toFixed(0)}mm, y=${target.y.toFixed(0)}mm, distance=${target.distance}mm`);
-        }
+        // Устанавливаем inSafetyZone для совместимости
+        target.inSafetyZone = target.distance < this.options.safetyZone.minDistance;
 
-        // ТЕПЕРЬ вычисляем угол с правильными координатами
-        target.angle = Math.atan2(target.x, target.y) * 180 / Math.PI;
+        // Логика исчезновения целей
+        const currentTime = Date.now();
 
-        // Проверяем FOV (300°-60° через 0°)
-        let azimuthNorm = ((target.angle % 360) + 360) % 360;
-        if (azimuthNorm >= 300 || azimuthNorm <= 60) {
-            // Цель в FOV - все ОК
-        } else {
-            // Цель вне FOV - возвращаем в FOV
-            if (azimuthNorm > 60 && azimuthNorm < 300) {
-                // Между 60° и 300° - вне FOV
-                if (azimuthNorm < 180) {
-                    target.angle = 60; // ближе к 60°
-                } else {
-                    target.angle = 300; // ближе к 300°
-                }
-                // Пересчитываем координаты с ИСПРАВЛЕННЫМ расстоянием
-                const angleRad = target.angle * Math.PI / 180;
-                target.x = Math.sin(angleRad) * target.distance;
-                target.y = Math.cos(angleRad) * target.distance;
+        // Если цель вышла из FOV или за пределы диапазона, начинаем отсчет времени
+        if (state === 'out_of_fov' || state === 'out_of_range') {
+            if (!target.outOfFOVTime) {
+                target.outOfFOVTime = currentTime;
             }
+            // Исчезаем через 1 секунду после выхода из FOV
+            if (currentTime - target.outOfFOVTime > 1000) {
+                target.valid = false;
+                target.outOfFOVTime = null;
+            }
+        } else {
+            // Если цель вернулась в FOV, сбрасываем таймер
+            target.outOfFOVTime = null;
         }
 
-        // Обновляем скорость (медленная)
-        target.speed = (Math.random() - 0.5) * 100; // ±50mm/s
-
-        // Иногда цель исчезает/появляется (реже)
-        if (Math.random() < 0.01) {
-            target.valid = !target.valid;
-        }
-
-        target.lastUpdate = Date.now();
+        // Убираем случайное исчезновение целей - они должны двигаться постоянно
 
         return target;
     }
@@ -221,15 +272,30 @@ class MockCANInterface extends EventEmitter {
         return Array.from(data);
     }
 
-    // Проверка зоны безопасности
-    checkSafetyZone(target) {
-        const inRange = target.distance >= this.options.safetyZone.minDistance &&
-                       target.distance <= this.options.safetyZone.maxDistance;
+    // Проверка состояния цели
+    checkTargetState(target) {
+        // Проверяем FOV (±60° горизонтально, 6м дистанция для активных целей)
+        const angleDeg = Math.atan2(target.y, target.x) * 180 / Math.PI;
+        const inHorizontalFOV = Math.abs(angleDeg) <= 60;
+        const inRange = target.distance <= 6000; // 6м для активных целей
+        const inFOV = inHorizontalFOV && inRange;
 
-        const inAngle = Math.abs(Math.atan2(target.y, target.x) * 180 / Math.PI) <=
-                       this.options.safetyZone.angleRange / 2;
+        // Проверяем вылет за FOV (до 6.5м)
+        const outOfRange = target.distance > 6500; // 6.5м - полный вылет
 
-        return inRange && inAngle;
+        // Проверяем safety zone (дистанция меньше 500mm)
+        const inSafetyZone = target.distance < this.options.safetyZone.minDistance;
+
+        // Определяем состояние
+        if (inSafetyZone) {
+            return 'safety'; // Красный цвет
+        } else if (inFOV) {
+            return 'active'; // Зеленый цвет
+        } else if (outOfRange) {
+            return 'out_of_range'; // Полный вылет за 6.5м
+        } else {
+            return 'out_of_fov'; // Синий цвет - в пределах 6-6.5м но вне угла FOV
+        }
     }
 
     // Отправка сообщения
@@ -241,6 +307,20 @@ class MockCANInterface extends EventEmitter {
     // Генерация и отправка данных
     generateData() {
         if (!this.isRunning) return;
+
+        // Переинициализируем исчезнувшие цели
+        for (let i = 0; i < this.targets.length; i++) {
+            const target = this.targets[i];
+            if (!target.valid) {
+                // Переинициализируем исчезнувшую цель
+                target.valid = true;
+                target.createdAt = Date.now();
+                target.lastUpdate = Date.now();
+                target.outOfFOVTime = null;
+                this.updateTargetPosition(target);
+                console.log(`🔄 Reinitialized target ${i} at ${(target.distance/1000).toFixed(1)}m, ${target.angle.toFixed(1)}°`);
+            }
+        }
 
         // Обновляем цели
         for (let i = 0; i < this.targets.length; i++) {
@@ -254,9 +334,13 @@ class MockCANInterface extends EventEmitter {
                 const targetMsg = this.createCANMessage(targetId, targetData);
                 this.sendMessage(targetMsg);
 
-                // Проверяем зону безопасности
-                if (this.checkSafetyZone(target)) {
+                // Проверяем состояние цели
+                if (target.state === 'safety') {
                     console.log(`🚨 Target ${i} in safety zone: ${target.distance.toFixed(0)}mm`);
+                } else if (target.state === 'out_of_fov') {
+                    console.log(`🔵 Target ${i} out of FOV: ${target.distance.toFixed(0)}mm, angle: ${target.angle.toFixed(1)}°`);
+                } else {
+                    console.log(`🟢 Target ${i} in FOV: ${target.distance.toFixed(0)}mm, angle: ${target.angle.toFixed(1)}°`);
                 }
             }
         }
@@ -271,14 +355,7 @@ class MockCANInterface extends EventEmitter {
         const statusMsg = this.createCANMessage(CAN_IDS.STATUS, statusData);
         this.sendMessage(statusMsg);
 
-        // Случайная аварийная остановка
-        if (Math.random() < 0.001) { // 0.1% chance
-            this.emergencyStop = !this.emergencyStop;
-            const emergencyData = [this.emergencyStop ? 0x01 : 0x00];
-            const emergencyMsg = this.createCANMessage(CAN_IDS.EMERGENCY_STOP, emergencyData);
-            this.sendMessage(emergencyMsg);
-            console.log(`🚨 Emergency Stop: ${this.emergencyStop ? 'ACTIVE' : 'INACTIVE'}`);
-        }
+        // Убираем случайную аварийную остановку - она должна быть только при реальной опасности
     }
 
     // Запуск Mock CAN

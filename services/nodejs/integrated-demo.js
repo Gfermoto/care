@@ -55,15 +55,15 @@ class CareIntegratedDemo {
 
             // Start Mock CAN Interface
             console.log('🎯 Starting Mock CAN Interface...');
-            this.mockCAN = new MockCANInterface({
-                targetCount: 3,
-                updateInterval: 100, // ms
-                safetyZone: {
-                    minDistance: 500,
-                    maxDistance: 6500, // КРИТИЧНО: не больше 6.5м!
-                    angleRange: 120
-                }
-            });
+        this.mockCAN = new MockCANInterface({
+            targetCount: 3,
+            updateInterval: 100, // ms
+            safetyZone: {
+                minDistance: 500,
+                maxDistance: 6500, // КРИТИЧНО: до 6.5м для вылета!
+                angleRange: 120
+            }
+        });
 
             // Connect Mock CAN to Dashboard
             this.mockCAN.on('message', (msg) => {
@@ -148,6 +148,25 @@ class CareIntegratedDemo {
             this.sharedData.radar.targets[targetId] = {};
         }
 
+            // Определяем состояние цели
+            const angleDeg = Math.atan2(y, x) * 180 / Math.PI;
+            const inHorizontalFOV = Math.abs(angleDeg) <= 60;
+            const inRange = distance <= 6000; // 6м для активных целей
+            const inFOV = inHorizontalFOV && inRange;
+            const outOfRange = distance > 6500; // 6.5м - полный вылет
+            const inSafetyZone = distance < 500; // мм
+
+            let state = 'active';
+            if (inSafetyZone) {
+                state = 'safety';
+            } else if (inFOV) {
+                state = 'active';
+            } else if (outOfRange) {
+                state = 'out_of_range';
+            } else {
+                state = 'out_of_fov';
+            }
+
         this.sharedData.radar.targets[targetId] = {
             id: targetId,
             x: x,
@@ -155,6 +174,8 @@ class CareIntegratedDemo {
             distance: distance,
             speed: speed,
             valid: true,
+            state: state,
+            inSafetyZone: inSafetyZone,
             lastUpdate: Date.now()
         };
 
@@ -166,6 +187,23 @@ class CareIntegratedDemo {
 
         // Update safety status
         this.sharedData.safety.activeTargets = this.sharedData.radar.activeTargets;
+        this.sharedData.safety.minDistance = 500; // мм - из настроек контроллера
+
+            // Проверяем emergency stop - максимум одна цель в safety zone
+            const targetsInSafetyZone = this.sharedData.radar.targets.filter(t => t && t.valid && t.inSafetyZone);
+            if (targetsInSafetyZone.length > 0) {
+                if (!this.sharedData.safety.emergencyStop) {
+                    this.sharedData.safety.emergencyStop = true;
+                    this.sharedData.safety.lastTrigger = new Date().toISOString();
+                    console.log(`🚨 Emergency Stop: ACTIVE (${targetsInSafetyZone.length} target(s) in safety zone)`);
+                }
+            } else {
+                if (this.sharedData.safety.emergencyStop) {
+                    this.sharedData.safety.emergencyStop = false;
+                    console.log(`🚨 Emergency Stop: INACTIVE (no targets in safety zone)`);
+                }
+            }
+
         this.dashboard.updateSafetyStatus(this.sharedData.safety);
 
         console.log(`🎯 Target ${targetId}: X=${x}mm, Y=${y}mm, D=${distance}mm, S=${speed}mm/s`);
