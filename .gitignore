@@ -1,0 +1,49 @@
+# ESPHome секреты
+secrets.yaml
+**/secrets.yaml
+ESPHome/secrets.yaml
+
+# Скомпилированные прошивки
+*.bin
+*.factory.bin
+*.ota.bin
+ld2450*.bin
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Логи
+*.log
+logs/
+
+# Временные файлы
+*.tmp
+*.bak
+*.backup
+
+# ESPHome
+.esphome/
+**/.esphome/
+*.esphome.lock
+.piolibdeps/
+*.piolibdeps/
+

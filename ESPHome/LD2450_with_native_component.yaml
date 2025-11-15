@@ -1,0 +1,864 @@
+#Make on https://53l3cu5.github.io/
+#Origin https://github.com/53l3cu5/ESP32_LD2450
+#
+# ============================================================================
+# МИНИМАЛИСТИЧНАЯ КОНФИГУРАЦИЯ: Нативный компонент + Аппаратные зоны
+# ============================================================================
+# ВКЛЮЧАЕТ:
+#  ✅ Нативный компонент ESPHome для управления радаром
+#  ✅ 3 аппаратные зоны радара (на уровне LD2450)
+#  ✅ Кнопки управления: перезагрузка радара, factory reset
+#  ✅ Управление: Multi-Target, Bluetooth
+#  ✅ LED-индикация с переключаемой автоматизацией (без конфликтов)
+# 
+# Аппаратные зоны радара (каскадные по глубине):
+#   Зона 1: ширина 2м (от -1м до +1м), глубина от 0.25м до 1.0м
+#   Зона 2: ширина 4м (от -2м до +2м), глубина от 1.0м до 3.0м
+#   Зона 3: ширина 6м (от -3м до +3м), глубина от 3.0м до 6.0м
+# 
+# Радар передаёт только цели внутри настроенных зон!
+# ============================================================================
+
+substitutions:
+  devicename: ld2450
+  friendly_name: LD2450
+  entity_name: "Radar"
+  tx_pin_ld2450: GPIO17
+  rx_pin_ld2450: GPIO16
+  blue_led_pin: GPIO2
+
+esphome:
+  name: $devicename
+  friendly_name: ${friendly_name}
+  comment: Human Presence Sensor by Zone (ESP32/LD2450) with Native Component
+  platformio_options:
+    board_build.flash_mode: dio
+  project:
+    name: 53l3cu5.Human_Presence_Sensor_by_Zone
+    version: "3.0-minimal-espidf"
+
+  on_boot:
+    priority: -100
+    then:
+      - logger.log: "✅ ESP32 boot complete"
+      - delay: 5s
+      - if:
+          condition:
+            lambda: 'return id(first_boot);'
+          then:
+            - logger.log: "🆕 Первый запуск - применяем дефолтные зоны"
+            - button.press: btn_apply_defaults
+            - delay: 2s
+            - logger.log: "🔄 Перезагружаем радар для применения настроек"
+            - button.press: radar_radar_restart
+            - delay: 3s
+            - globals.set:
+                id: first_boot
+                value: 'false'
+            - logger.log: "✅ Инициализация завершена"
+
+preferences:
+  flash_write_interval: 5s
+
+# ============================================================================
+# GLOBALS
+# ============================================================================
+globals:
+  - id: first_boot
+    type: bool
+    restore_value: yes
+    initial_value: 'true'
+  
+  - id: sensor_throttle
+    type: int
+    restore_value: yes
+    initial_value: '100'
+  
+  - id: radar_sensitivity
+    type: int
+    restore_value: yes
+    initial_value: '5'
+  
+  - id: energy_threshold
+    type: int
+    restore_value: yes
+    initial_value: '1000'
+  
+  - id: target_hold_time
+    type: int
+    restore_value: yes
+    initial_value: '5'
+  
+  - id: speed_filter
+    type: int
+    restore_value: yes
+    initial_value: '5'
+  
+  - id: working_mode
+    type: int
+    restore_value: yes
+    initial_value: '0'
+  
+  - id: update_rate
+    type: int
+    restore_value: yes
+    initial_value: '10'
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+improv_serial:
+logger:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+  - platform: web_server
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: NONE
+  reboot_timeout: 15min
+  ap:
+    ssid: "${devicename} Hotspot"
+    password: !secret hotspot_password
+    channel: 1
+    manual_ip:
+      static_ip: 192.168.4.1
+      gateway: 192.168.4.1
+      subnet: 255.255.255.0
+
+captive_portal:
+
+web_server:
+  port: 80
+  include_internal: false
+  local: true
+
+# ============================================================================
+# UART и радар
+# ============================================================================
+uart:
+  id: uart_bus
+  tx_pin: ${tx_pin_ld2450}
+  rx_pin: ${rx_pin_ld2450}
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+  data_bits: 8
+
+ld2450:
+  id: ld2450_radar
+  uart_id: uart_bus
+
+# ============================================================================
+# ПЕРЕКЛЮЧАТЕЛИ
+# ============================================================================
+switch:
+  - platform: ld2450
+    multi_target:
+      name: "Режим нескольких целей"
+      id: multi_target_mode
+      icon: mdi:target-account
+      entity_category: config
+      restore_mode: RESTORE_DEFAULT_ON
+      on_turn_on:
+        then:
+          - lambda: |-
+              if (id(update_rate_setting).state > 10) {
+                id(update_rate_setting).make_call().set_value(10).perform();
+                ESP_LOGW("multi_target", "⚠️ Частота снижена до 10 Гц");
+              }
+              if (id(sensor_throttle_setting).state < 100) {
+                id(sensor_throttle_setting).make_call().set_value(100).perform();
+                ESP_LOGW("multi_target", "⚠️ Throttle увеличен до 100 мс");
+              }
+      on_turn_off:
+        then:
+          - logger.log: "✅ Single-Target: разрешено до 20 Гц / 50 мс"
+  
+  - platform: ld2450
+    bluetooth:
+      name: "Bluetooth"
+      id: bluetooth_mode
+      icon: mdi:bluetooth
+      entity_category: config
+      disabled_by_default: true
+
+  - platform: template
+    name: "Автоматическая индикация LED"
+    id: led_auto_switch
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    on_turn_on:
+      then:
+        - logger.log: "💡 LED автоматизация: ВКЛ"
+    on_turn_off:
+      then:
+        - light.turn_off: blue_radar_led
+        - logger.log: "🌙 LED автоматизация: ВЫКЛ (тихий режим)"
+
+# ============================================================================
+# BINARY SENSORS
+# ============================================================================
+binary_sensor:
+  - platform: status
+    name: "Подключение к HA"
+    id: ink_ha_connected
+  
+  - platform: ld2450
+    has_target:
+      name: "Присутствие цели"
+      id: radar_has_target
+  
+  - platform: template
+    name: "Зона 1 - Близко"
+    id: zone1_presence
+    lambda: |-
+      float x1 = id(target1_x).state, y1 = id(target1_y).state;
+      float x2 = id(target2_x).state, y2 = id(target2_y).state;
+      float x3 = id(target3_x).state, y3 = id(target3_y).state;
+      bool in_zone = false;
+      if (!isnan(x1) && x1 >= -1000 && x1 <= 1000 && !isnan(y1) && y1 >= 250 && y1 < 1000) in_zone = true;
+      if (!isnan(x2) && x2 >= -1000 && x2 <= 1000 && !isnan(y2) && y2 >= 250 && y2 < 1000) in_zone = true;
+      if (!isnan(x3) && x3 >= -1000 && x3 <= 1000 && !isnan(y3) && y3 >= 250 && y3 < 1000) in_zone = true;
+      return in_zone;
+    device_class: occupancy
+  
+  - platform: template
+    name: "Зона 2 - Средне"
+    id: zone2_presence
+    lambda: |-
+      float x1 = id(target1_x).state, y1 = id(target1_y).state;
+      float x2 = id(target2_x).state, y2 = id(target2_y).state;
+      float x3 = id(target3_x).state, y3 = id(target3_y).state;
+      bool in_zone = false;
+      if (!isnan(x1) && x1 >= -2000 && x1 <= 2000 && !isnan(y1) && y1 >= 1000 && y1 < 3000) in_zone = true;
+      if (!isnan(x2) && x2 >= -2000 && x2 <= 2000 && !isnan(y2) && y2 >= 1000 && y2 < 3000) in_zone = true;
+      if (!isnan(x3) && x3 >= -2000 && x3 <= 2000 && !isnan(y3) && y3 >= 1000 && y3 < 3000) in_zone = true;
+      return in_zone;
+    device_class: occupancy
+  
+  - platform: template
+    name: "Зона 3 - Далеко"
+    id: zone3_presence
+    lambda: |-
+      float x1 = id(target1_x).state, y1 = id(target1_y).state;
+      float x2 = id(target2_x).state, y2 = id(target2_y).state;
+      float x3 = id(target3_x).state, y3 = id(target3_y).state;
+      bool in_zone = false;
+      if (!isnan(x1) && x1 >= -3000 && x1 <= 3000 && !isnan(y1) && y1 >= 3000 && y1 <= 6000) in_zone = true;
+      if (!isnan(x2) && x2 >= -3000 && x2 <= 3000 && !isnan(y2) && y2 >= 3000 && y2 <= 6000) in_zone = true;
+      if (!isnan(x3) && x3 >= -3000 && x3 <= 3000 && !isnan(y3) && y3 >= 3000 && y3 <= 6000) in_zone = true;
+      return in_zone;
+    device_class: occupancy
+
+# ============================================================================
+# SENSORS
+# ============================================================================
+sensor:
+  - platform: uptime
+    name: "Время работы"
+    update_interval: 60s
+    disabled_by_default: True
+  
+  - platform: wifi_signal
+    name: "Сила сигнала WiFi"
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+  - platform: ld2450
+    target_count:
+      name: "Количество целей"
+    
+  - platform: ld2450
+    target_1:
+      x:
+        name: "Цель 1 - X"
+        id: target1_x
+        filters:
+          - throttle: 100ms
+      y:
+        name: "Цель 1 - Y"
+        id: target1_y
+        filters:
+          - throttle: 100ms
+      speed:
+        name: "Цель 1 - Скорость"
+        id: target1_speed
+        filters:
+          - throttle: 100ms
+      angle:
+        name: "Цель 1 - Угол"
+        id: target1_angle
+        filters:
+          - throttle: 100ms
+      resolution:
+        name: "Цель 1 - Разрешение"
+        id: target1_resolution
+        filters:
+          - throttle: 100ms
+
+  - platform: ld2450
+    target_2:
+      x:
+        name: "Цель 2 - X"
+        id: target2_x
+        filters:
+          - throttle: 100ms
+      y:
+        name: "Цель 2 - Y"
+        id: target2_y
+        filters:
+          - throttle: 100ms
+      speed:
+        name: "Цель 2 - Скорость"
+        id: target2_speed
+        filters:
+          - throttle: 100ms
+      angle:
+        name: "Цель 2 - Угол"
+        id: target2_angle
+        filters:
+          - throttle: 100ms
+      resolution:
+        name: "Цель 2 - Разрешение"
+        id: target2_resolution
+        filters:
+          - throttle: 100ms
+
+  - platform: ld2450
+    target_3:
+      x:
+        name: "Цель 3 - X"
+        id: target3_x
+        filters:
+          - throttle: 100ms
+      y:
+        name: "Цель 3 - Y"
+        id: target3_y
+        filters:
+          - throttle: 100ms
+      speed:
+        name: "Цель 3 - Скорость"
+        id: target3_speed
+        filters:
+          - throttle: 100ms
+      angle:
+        name: "Цель 3 - Угол"
+        id: target3_angle
+        filters:
+          - throttle: 100ms
+      resolution:
+        name: "Цель 3 - Разрешение"
+        id: target3_resolution
+        filters:
+          - throttle: 100ms
+
+# ============================================================================
+# АППАРАТНЫЕ ЗОНЫ
+# ============================================================================
+number:
+  - platform: ld2450
+    zone_1:
+      x1:
+        name: "Зона 1 - X1"
+        id: hw_zone1_x1
+        unit_of_measurement: mm
+      y1:
+        name: "Зона 1 - Y1"
+        id: hw_zone1_y1
+        unit_of_measurement: mm
+      x2:
+        name: "Зона 1 - X2"
+        id: hw_zone1_x2
+        unit_of_measurement: mm
+      y2:
+        name: "Зона 1 - Y2"
+        id: hw_zone1_y2
+        unit_of_measurement: mm
+    presence_timeout:
+      name: "Зона 1 - Таймаут"
+      id: hw_zone1_timeout
+  
+  - platform: ld2450
+    zone_2:
+      x1:
+        name: "Зона 2 - X1"
+        id: hw_zone2_x1
+        unit_of_measurement: mm
+      y1:
+        name: "Зона 2 - Y1"
+        id: hw_zone2_y1
+        unit_of_measurement: mm
+      x2:
+        name: "Зона 2 - X2"
+        id: hw_zone2_x2
+        unit_of_measurement: mm
+      y2:
+        name: "Зона 2 - Y2"
+        id: hw_zone2_y2
+        unit_of_measurement: mm
+    presence_timeout:
+      name: "Зона 2 - Таймаут"
+      id: hw_zone2_timeout
+  
+  - platform: ld2450
+    zone_3:
+      x1:
+        name: "Зона 3 - X1"
+        id: hw_zone3_x1
+        unit_of_measurement: mm
+      y1:
+        name: "Зона 3 - Y1"
+        id: hw_zone3_y1
+        unit_of_measurement: mm
+      x2:
+        name: "Зона 3 - X2"
+        id: hw_zone3_x2
+        unit_of_measurement: mm
+      y2:
+        name: "Зона 3 - Y2"
+        id: hw_zone3_y2
+        unit_of_measurement: mm
+    presence_timeout:
+      name: "Зона 3 - Таймаут"
+      id: hw_zone3_timeout
+
+# ============================================================================
+# НАСТРОЙКИ
+# ============================================================================
+  - platform: template
+    name: "Задержка сенсоров"
+    id: sensor_throttle_setting
+    min_value: 50
+    max_value: 1000
+    step: 10
+    unit_of_measurement: "ms"
+    mode: box
+    optimistic: true
+    initial_value: 100
+    restore_value: true
+    entity_category: config
+    icon: mdi:speedometer
+    on_value:
+      then:
+        - lambda: |-
+            if (id(multi_target_mode).state && x < 100) {
+              id(sensor_throttle_setting).make_call().set_value(100).perform();
+              ESP_LOGW("throttle", "⚠️ Multi-Target требует минимум 100 мс");
+            } else {
+              id(sensor_throttle) = x;
+              ESP_LOGI("throttle", "⚙️ Throttle: %d мс", (int)x);
+            }
+
+  - platform: template
+    name: "Чувствительность радара"
+    id: radar_sensitivity_setting
+    min_value: 0
+    max_value: 9
+    step: 1
+    mode: slider
+    optimistic: true
+    initial_value: 5
+    restore_value: true
+    entity_category: config
+    icon: mdi:signal-variant
+    on_value:
+      then:
+        - lambda: 'id(radar_sensitivity) = x;'
+        - logger.log:
+            format: "🎚️ Чувствительность: %d (нажмите Write Config)"
+            args: ['(int)x']
+  
+  - platform: template
+    name: "Порог энергии"
+    id: energy_threshold_setting
+    min_value: 100
+    max_value: 10000
+    step: 100
+    mode: box
+    optimistic: true
+    initial_value: 1000
+    restore_value: true
+    entity_category: config
+    icon: mdi:flash
+    on_value:
+      then:
+        - lambda: 'id(energy_threshold) = x;'
+        - logger.log:
+            format: "⚡ Порог энергии: %d"
+            args: ['(int)x']
+  
+  - platform: template
+    name: "Время удержания цели"
+    id: target_hold_time_setting
+    min_value: 0
+    max_value: 60
+    step: 1
+    unit_of_measurement: "s"
+    mode: box
+    optimistic: true
+    initial_value: 5
+    restore_value: true
+    entity_category: config
+    icon: mdi:timer-sand
+    on_value:
+      then:
+        - lambda: 'id(target_hold_time) = x;'
+        - logger.log:
+            format: "⏱️ Timeout удержания: %d сек"
+            args: ['(int)x']
+  
+  - platform: template
+    name: "Фильтр скорости"
+    id: speed_filter_setting
+    min_value: 0
+    max_value: 100
+    step: 1
+    unit_of_measurement: "cm/s"
+    mode: box
+    optimistic: true
+    initial_value: 5
+    restore_value: true
+    entity_category: config
+    icon: mdi:speedometer-slow
+    on_value:
+      then:
+        - lambda: 'id(speed_filter) = x;'
+        - logger.log:
+            format: "🏃 Фильтр скорости: %d см/с"
+            args: ['(int)x']
+  
+  - platform: template
+    name: "Частота обновления"
+    id: update_rate_setting
+    min_value: 1
+    max_value: 20
+    step: 1
+    unit_of_measurement: "Hz"
+    mode: box
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    entity_category: config
+    icon: mdi:update
+    on_value:
+      then:
+        - lambda: |-
+            if (id(multi_target_mode).state && x > 10) {
+              id(update_rate_setting).make_call().set_value(10).perform();
+              ESP_LOGW("update_rate", "⚠️ Multi-Target максимум 10 Гц");
+            } else {
+              id(update_rate) = x;
+              ESP_LOGI("update_rate", "📡 Частота обновления: %d Гц", (int)x);
+            }
+
+select:
+  - platform: template
+    name: "Режим работы"
+    id: working_mode_select
+    optimistic: true
+    options:
+      - "Normal"
+      - "High Sensitivity"
+      - "Low Power"
+      - "High Precision"
+    initial_option: "Normal"
+    restore_value: true
+    entity_category: config
+    icon: mdi:tune-variant
+    on_value:
+      then:
+        - lambda: |-
+            int mode = 0;
+            if (x == "Normal") mode = 0;
+            else if (x == "High Sensitivity") mode = 1;
+            else if (x == "Low Power") mode = 2;
+            else if (x == "High Precision") mode = 3;
+            id(working_mode) = mode;
+            ESP_LOGI("LD2450", "🎛️ Режим работы: %s (%d)", x.c_str(), mode);
+
+text_sensor:
+  - platform: template
+    name: "Статус конфигурации"
+    id: config_status
+    icon: mdi:information
+    entity_category: diagnostic
+    update_interval: 10s
+    lambda: |-
+      char status[200];
+      const char* mode_names[] = {"Normal", "High Sens", "Low Pwr", "Hi Prec"};
+      sprintf(status, "Throttle:%dms Sens:%d Energy:%d Hold:%ds Speed:%dcm/s Rate:%dHz Mode:%s LED:%s", 
+              id(sensor_throttle), 
+              id(radar_sensitivity),
+              id(energy_threshold),
+              id(target_hold_time),
+              id(speed_filter),
+              id(update_rate),
+              mode_names[id(working_mode)],
+              id(led_auto_switch).state ? "Auto" : "Manual");
+      return {status};
+
+# ============================================================================
+# ИНДИКАЦИЯ
+# ============================================================================
+light:
+  - platform: status_led
+    name: "Системный статус"
+    pin: GPIO13
+    internal: True
+    restore_mode: ALWAYS_OFF
+  
+  - platform: monochromatic
+    name: "LED индикация"
+    id: blue_radar_led
+    output: blue_led_output
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - strobe:
+          name: "Slow Blink"
+          colors:
+            - state: true
+              duration: 500ms
+            - state: false
+              duration: 500ms
+      - strobe:
+          name: "Fast Blink"
+          colors:
+            - state: true
+              duration: 166ms
+            - state: false
+              duration: 166ms
+
+output:
+  - platform: ledc
+    id: blue_led_output
+    pin:
+      number: ${blue_led_pin}
+      inverted: true
+    frequency: 1000Hz
+
+# ============================================================================
+# АВТОМАТИЗАЦИЯ
+# ============================================================================
+interval:
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(multi_target_mode).state;'
+          then:
+            - switch.turn_on: multi_target_mode
+            - logger.log: "✅ Режим множественных целей включен автоматически"
+  
+  - interval: 300ms
+    then:
+      - if:
+          condition:
+            switch.is_on: led_auto_switch
+          then:
+            - lambda: |-
+                if (id(zone1_presence).state) {
+                  auto call = id(blue_radar_led).turn_on();
+                  call.set_effect("None");
+                  call.perform();
+                } else if (id(zone2_presence).state) {
+                  auto call = id(blue_radar_led).turn_on();
+                  call.set_effect("Slow Blink");
+                  call.perform();
+                } else if (id(zone3_presence).state) {
+                  auto call = id(blue_radar_led).turn_on();
+                  call.set_effect("Fast Blink");
+                  call.perform();
+                } else {
+                  id(blue_radar_led).turn_off().perform();
+                }
+
+# ============================================================================
+# КНОПКИ
+# ============================================================================
+button:
+  - platform: restart
+    icon: mdi:power-cycle
+    name: "Перезагрузка ESP"
+    entity_category: diagnostic
+  
+  - platform: ld2450
+    restart:
+      name: "Перезагрузка радара"
+      id: radar_radar_restart
+      icon: mdi:restart
+      entity_category: config
+  
+  - platform: ld2450
+    factory_reset:
+      name: "Сброс к заводским настройкам"
+      id: radar_factory_reset
+      icon: mdi:restart-alert
+      entity_category: config
+  
+  - platform: template
+    name: "Применить зоны по умолчанию"
+    id: btn_apply_defaults
+    icon: mdi:restore
+    entity_category: config
+    on_press:
+      then:
+        - logger.log: "📐 Применяем каскадные зоны по глубине..."
+        - number.set:
+            id: hw_zone1_x1
+            value: -1000
+        - number.set:
+            id: hw_zone1_y1
+            value: 250
+        - number.set:
+            id: hw_zone1_x2
+            value: 1000
+        - number.set:
+            id: hw_zone1_y2
+            value: 1000
+        - number.set:
+            id: hw_zone2_x1
+            value: -2000
+        - number.set:
+            id: hw_zone2_y1
+            value: 1000
+        - number.set:
+            id: hw_zone2_x2
+            value: 2000
+        - number.set:
+            id: hw_zone2_y2
+            value: 3000
+        - number.set:
+            id: hw_zone3_x1
+            value: -3000
+        - number.set:
+            id: hw_zone3_y1
+            value: 3000
+        - number.set:
+            id: hw_zone3_x2
+            value: 3000
+        - number.set:
+            id: hw_zone3_y2
+            value: 6000
+        - logger.log: "✅ Дефолтные зоны применены (нажмите Restart Radar)"
+  
+  - platform: template
+    name: "Записать конфигурацию в радар"
+    id: btn_write_config
+    icon: mdi:upload
+    entity_category: config
+    on_press:
+      then:
+        - logger.log: "📤 Запись конфигурации в радар..."
+        - lambda: |-
+            ESP_LOGI("LD2450", "Записываем параметры:");
+            ESP_LOGI("LD2450", "  Чувствительность: %d", id(radar_sensitivity));
+            ESP_LOGI("LD2450", "  Порог энергии: %d", id(energy_threshold));
+            ESP_LOGI("LD2450", "  Timeout удержания: %d сек", id(target_hold_time));
+            ESP_LOGI("LD2450", "  Фильтр скорости: %d см/с", id(speed_filter));
+            ESP_LOGI("LD2450", "  Режим работы: %d", id(working_mode));
+            ESP_LOGI("LD2450", "  Частота обновления: %d Гц", id(update_rate));
+            
+            uint8_t sens = (uint8_t)id(radar_sensitivity);
+            uint8_t cmd_sensitivity[] = {
+              0xFD, 0xFC, 0xFB, 0xFA,
+              0x0A, 0x00,
+              0x64, 0x00,
+              sens, sens, sens, sens, sens, sens, sens, sens,
+              0x04, 0x03, 0x02, 0x01
+            };
+            id(uart_bus).write_array(cmd_sensitivity, sizeof(cmd_sensitivity));
+            delay(50);
+            
+            uint16_t energy = (uint16_t)id(energy_threshold);
+            uint8_t cmd_energy[] = {
+              0xFD, 0xFC, 0xFB, 0xFA,
+              0x04, 0x00,
+              0x60, 0x00,
+              (uint8_t)(energy & 0xFF),
+              (uint8_t)((energy >> 8) & 0xFF),
+              0x04, 0x03, 0x02, 0x01
+            };
+            id(uart_bus).write_array(cmd_energy, sizeof(cmd_energy));
+            delay(50);
+            
+            uint16_t hold_time = (uint16_t)id(target_hold_time);
+            uint8_t cmd_hold[] = {
+              0xFD, 0xFC, 0xFB, 0xFA,
+              0x04, 0x00,
+              0x61, 0x00,
+              (uint8_t)(hold_time & 0xFF),
+              (uint8_t)((hold_time >> 8) & 0xFF),
+              0x04, 0x03, 0x02, 0x01
+            };
+            id(uart_bus).write_array(cmd_hold, sizeof(cmd_hold));
+            delay(50);
+            
+            uint8_t speed = (uint8_t)id(speed_filter);
+            uint8_t cmd_speed[] = {
+              0xFD, 0xFC, 0xFB, 0xFA,
+              0x03, 0x00,
+              0x62, 0x00,
+              speed,
+              0x04, 0x03, 0x02, 0x01
+            };
+            id(uart_bus).write_array(cmd_speed, sizeof(cmd_speed));
+            delay(50);
+            
+            uint8_t mode = (uint8_t)id(working_mode);
+            uint8_t cmd_mode[] = {
+              0xFD, 0xFC, 0xFB, 0xFA,
+              0x03, 0x00,
+              0x65, 0x00,
+              mode,
+              0x04, 0x03, 0x02, 0x01
+            };
+            id(uart_bus).write_array(cmd_mode, sizeof(cmd_mode));
+            delay(50);
+            
+            uint8_t rate = (uint8_t)id(update_rate);
+            uint8_t cmd_rate[] = {
+              0xFD, 0xFC, 0xFB, 0xFA,
+              0x03, 0x00,
+              0x66, 0x00,
+              rate,
+              0x04, 0x03, 0x02, 0x01
+            };
+            id(uart_bus).write_array(cmd_rate, sizeof(cmd_rate));
+            delay(50);
+            
+            uint8_t cmd_save[] = {
+              0xFD, 0xFC, 0xFB, 0xFA,
+              0x02, 0x00,
+              0x60, 0x61,
+              0x04, 0x03, 0x02, 0x01
+            };
+            id(uart_bus).write_array(cmd_save, sizeof(cmd_save));
+            
+            ESP_LOGI("LD2450", "✅ Команды отправлены в радар");
+            ESP_LOGI("LD2450", "⚠️ ВАЖНО: Перезагрузите радар для применения!");
+        - logger.log: "✅ Конфигурация записана в радар"
+  
+  - platform: template
+    name: "Применить и перезагрузить радар"
+    icon: mdi:restart-alert
+    entity_category: config
+    on_press:
+      then:
+        - logger.log: "🔄 Применяем настройки и перезагружаем радар..."
+        - button.press: btn_write_config
+        - delay: 1s
+        - button.press: radar_radar_restart
+        - delay: 3s
+        - logger.log: "✅ Радар перезагружен, настройки применены"

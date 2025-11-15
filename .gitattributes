@@ -1,0 +1,4 @@
+# Убедиться что секреты не попадут в репозиторий
+secrets.yaml linguist-vendored
+**/secrets.yaml linguist-vendored
+
