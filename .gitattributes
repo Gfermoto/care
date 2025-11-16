@@ -2,3 +2,12 @@
 secrets.yaml linguist-vendored
 **/secrets.yaml linguist-vendored
 
+# Документация не влияет на статистику языков
+*.md linguist-documentation
+
+# Исключить shell-скрипты из статистики языков
+scripts/*.sh linguist-detectable=false
+
+# Подсветка конфигов ESPHome как YAML (для видимости YAML в статистике)
+ESPHome/* linguist-language=YAML
+
