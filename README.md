@@ -48,9 +48,7 @@ CARE/
 
 ### Устройство
 
-![Устройство — вид 1](device_photos/photo_1.jpg)
-
-![Устройство — вид 2](device_photos/photo_2.jpg)
+![Устройство](device_photos/photo.jpg)
 
 ### Карточка для Home Assistant (ha_radar)
 
