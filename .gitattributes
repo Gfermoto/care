@@ -9,5 +9,10 @@ secrets.yaml linguist-vendored
 scripts/*.sh linguist-detectable=false
 
 # Подсветка конфигов ESPHome как YAML (для видимости YAML в статистике)
-ESPHome/* linguist-language=YAML
+ESPHome/*.yaml linguist-language=YAML
+ESPHome/*.yml linguist-language=YAML
+# Принудительно считать YAML-ом карточку с расширением .txt
+ESPHome/Plotly_Graph_Native_Component.txt linguist-language=YAML
+# Принудительно учесть пример секретов как YAML (а не исключать)
+ESPHome/secrets.yaml.example linguist-language=YAML linguist-detectable=true
 
