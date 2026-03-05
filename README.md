@@ -231,7 +231,7 @@ python3 scripts/radar.py
 
 - **ESPHome** 2023.12.0 или новее
 - **Home Assistant** 2023.12.0 или новее (опционально)
-- **Python 3** с библиотекой `pyserial` (для скриптов)
+- **Python 3** с `pyserial` (для скриптов: `pip install -r scripts/requirements.txt`)
 
 ### Аппаратура
 

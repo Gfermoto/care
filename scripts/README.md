@@ -10,14 +10,15 @@
 
 **Использование:**
 ```bash
-./scripts/connect_radar.sh
+./scripts/connect_radar.sh [BUSID]
+RADAR_BUSID=3-4 ./scripts/connect_radar.sh   # через переменную окружения
 ```
 
 **Что делает:**
 - Привязывает USB устройство через `usbipd-win`
 - Подключает радар к WSL2
 - Проверяет доступность порта `/dev/ttyUSB0` или `/dev/ttyUSB1`
-- Показывает команды для работы с радаром
+- Показывает команды для работы с радаром (с учётом найденного порта)
 
 **Требования:**
 - Windows с установленным `usbipd-win`
@@ -32,13 +33,16 @@
 
 **Использование:**
 ```bash
-python3 scripts/radar.py
+python3 scripts/radar.py                    # порт по умолчанию /dev/ttyUSB0
+python3 scripts/radar.py -p /dev/ttyUSB1   # указать порт
+python3 scripts/radar.py -b 115200          # указать скорость
+python3 scripts/radar.py --help             # все опции
 ```
 
 **Что делает:**
-- Подключается к `/dev/ttyUSB0` на скорости **256000 baud**
-- Ищет заголовок пакетов **`AA FF`** (правильный протокол LD2450)
-- Парсит координаты X, Y из пакетов
+- Подключается к указанному порту (по умолчанию `/dev/ttyUSB0`) на **256000 baud**
+- Ищет заголовок пакетов **`AA FF`** (протокол LD2450)
+- Парсит координаты X, Y (signed 16-bit) из пакетов
 - Выводит координаты целей в миллиметрах
 - Считает количество обработанных целей
 
@@ -61,7 +65,7 @@ python3 scripts/radar.py
 
 **Требования:**
 - Python 3
-- Библиотека `pyserial`: `pip install pyserial`
+- Библиотека `pyserial`: `pip install -r scripts/requirements.txt` или `pip install pyserial`
 
 **Особенности:**
 - Автоматически пробует разные скорости (230400, 250000, 256000, 115200)
@@ -74,8 +78,9 @@ python3 scripts/radar.py
 ## 🔧 Установка зависимостей
 
 ```bash
-# Python библиотека для работы с UART
-pip install pyserial
+# Python библиотеки для работы с UART
+pip install -r scripts/requirements.txt
+# или: pip install pyserial
 ```
 
 ---

@@ -7,6 +7,7 @@
 #
 # Использование: ./scripts/connect_radar.sh [BUSID]
 # Пример: ./scripts/connect_radar.sh 5-6
+# BUSID через переменную: RADAR_BUSID=3-4 ./scripts/connect_radar.sh
 #
 # Требования:
 # - Windows с установленным usbipd-win
@@ -14,8 +15,8 @@
 # - Радар подключен к USB порту Windows
 # =============================================================================
 
-# BUSID по умолчанию (можно указать как аргумент)
-BUSID=${1:-"5-6"}
+# BUSID: аргумент > переменная RADAR_BUSID > значение по умолчанию
+BUSID=${1:-${RADAR_BUSID:-"5-6"}}
 
 echo -e "\033[32m📡 Подключение радара в WSL...\033[0m"
 
@@ -52,20 +53,20 @@ powershell.exe usbipd list
 echo ""
 echo -e "\033[35m🔍 Проверяем доступность порта...\033[0m"
 if [ -e /dev/ttyUSB0 ]; then
-    echo -e "\033[32m✅ Порт /dev/ttyUSB0 доступен!\033[0m"
-    echo ""
-    echo -e "\033[36m🚀 Доступные команды для работы с радаром:\033[0m"
-    echo -e "\033[37m  # Монитор радара (Python - рекомендуется):\033[0m"
-    echo -e "\033[37m  python3 scripts/radar.py\033[0m"
-    echo ""
-    echo -e "\033[37m  # Проверить все доступные порты:\033[0m"
-    echo -e "\033[37m  ls -la /dev/ttyUSB*\033[0m"
+    RADAR_PORT="/dev/ttyUSB0"
 elif [ -e /dev/ttyUSB1 ]; then
-    echo -e "\033[32m✅ Порт /dev/ttyUSB1 доступен!\033[0m"
+    RADAR_PORT="/dev/ttyUSB1"
+fi
+if [ -n "$RADAR_PORT" ]; then
+    echo -e "\033[32m✅ Порт $RADAR_PORT доступен!\033[0m"
     echo ""
     echo -e "\033[36m🚀 Доступные команды для работы с радаром:\033[0m"
     echo -e "\033[37m  # Монитор радара (Python - рекомендуется):\033[0m"
-    echo -e "\033[37m  python3 scripts/radar.py\033[0m"
+    if [ "$RADAR_PORT" = "/dev/ttyUSB0" ]; then
+        echo -e "\033[37m  python3 scripts/radar.py\033[0m"
+    else
+        echo -e "\033[37m  python3 scripts/radar.py -p $RADAR_PORT\033[0m"
+    fi
     echo ""
     echo -e "\033[37m  # Проверить все доступные порты:\033[0m"
     echo -e "\033[37m  ls -la /dev/ttyUSB*\033[0m"

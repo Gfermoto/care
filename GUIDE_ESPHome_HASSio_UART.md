@@ -357,7 +357,7 @@ python3 scripts/radar.py
 
 **Официальный инструмент HLK:**
 - Windows приложение: `HLK-LD2450_TOOL_English.exe`
-- Расположение: `docs/datasheets/application software/HLK-LD2450_TOOL_English/`
+- Скачать: официальный сайт Hi-Link или репозиторий с документацией LD2450
 
 **Как использовать:**
 1. Подключите радар к COM порту Windows
@@ -470,7 +470,7 @@ uint8_t cmd_save[] = {
 ### 🛠️ Инструменты
 
 - **Скрипты:** `scripts/`
-- **Документация:** `docs/`
+- **Документация:** `README.md`, `GUIDE_ESPHome_HASSio_UART.md`
 
 ---
 
