@@ -1,82 +1,36 @@
-# ESPHome конфигурация для HLK-LD2450
+# ESPHome для HLK-LD2450
 
-Готовая конфигурация ESPHome для радара HLK-LD2450 с нативным компонентом на ESP-IDF Framework.
+Конфиг на ESP-IDF с нативным компонентом LD2450.
 
-## 📁 Файлы
+Файлы:
+- LD2450_with_native_component.yaml — конфиг ESPHome
+- Plotly_Graph_Native_Component.txt — карточка для HA
+- secrets.yaml.example — шаблон
 
-- **`LD2450_with_native_component.yaml`** - Конфигурация ESPHome
-- **`Plotly_Graph_Native_Component.txt`** - Карточка для Home Assistant
-- **`secrets.yaml.example`** - Шаблон секретов
-
-## 🚀 Быстрый старт
-
-### 1. Настройка секретов
+## Быстрый старт
 
 ```bash
 cp secrets.yaml.example secrets.yaml
-nano secrets.yaml
-```
+nano secrets.yaml   # wifi, ota, api_encryption_key (esphome encryption-key)
 
-Заполните:
-```yaml
-wifi_ssid: "YOUR_WIFI_SSID"
-wifi_password: "YOUR_WIFI_PASSWORD"
-ota_password: "YOUR_OTA_PASSWORD"
-hotspot_password: "YOUR_HOTSPOT_PASSWORD"
-
-# Генерация: esphome encryption-key
-api_encryption_key: "YOUR_API_ENCRYPTION_KEY"
-```
-
-### 2. Компиляция и прошивка
-
-```bash
 esphome compile LD2450_with_native_component.yaml
 esphome upload LD2450_with_native_component.yaml
 ```
 
-### 3. Добавление карточки в Home Assistant
+Карточка: HACS → Plotly Graph Card, скопировать Plotly_Graph_Native_Component.txt в Manual card.
 
-1. Установите **Plotly Graph Card** через HACS
-2. Откройте Dashboard → **Edit** → **Add Card** → **Manual**
-3. Скопируйте содержимое `Plotly_Graph_Native_Component.txt`
-4. Вставьте в редактор и сохраните
-
-## ✅ Возможности
-
-- ✅ Нативный компонент ESPHome для LD2450
-- ✅ 3 аппаратные зоны радара
-- ✅ 3 цели одновременно с координатами X, Y, Speed, Angle
-- ✅ Автоматическое включение режима множественных целей
-- ✅ LED индикация по зонам
-- ✅ Веб-интерфейс для настройки
-- ✅ OTA обновления по WiFi
-
-## 📡 Аппаратные зоны
-
-- **Зона 1:** 2м × 0.75м (глубина 250-1000мм)
-- **Зона 2:** 4м × 2м (глубина 1000-3000мм)
-- **Зона 3:** 6м × 3м (глубина 3000-6000мм)
-
-## 🔌 Подключение
+## Подключение
 
 ```
 LD2450 → ESP32
-VCC  → 5V
-GND  → GND
-TX   → GPIO16 (RX2)
-RX   → GPIO17 (TX2)
+VCC → 5V, GND → GND
+TX → GPIO16 (RX2), RX → GPIO17 (TX2)
 ```
 
-## ⚡ Почему ESP-IDF?
+## Зоны по умолчанию
 
-**Преимущества ESP-IDF Framework:**
-- ✅ Стабильнее UART на 256000 baud
-- ✅ Лучшая производительность (+10-15%)
-- ✅ Меньше размер прошивки (-17%)
-- ✅ Меньше потребление RAM (-13%)
-- ✅ Будущее ESPHome (переход на ESP-IDF по умолчанию)
+Зона 1: 2м × 0.75м (250-1000мм)
+Зона 2: 4м × 2м (1000-3000мм)
+Зона 3: 6м × 3м (3000-6000мм)
 
-## 📚 Дополнительно
-
-См. основной README в корне репозитория для полной документации.
+Подробнее в корневом README и GUIDE.
